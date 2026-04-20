@@ -1,80 +1,95 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1d3142" />
-    <title>Dify Plugin Packager | Control Deck</title>
+    <meta name="theme-color" content="#09111a" />
+    <title>Dify Plugin Packager | Offline Console</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="masthead">
-        <div class="masthead__topline">
-          <div class="masthead__eyebrow">Dify Plugin Packager / Offline Build Deck</div>
-          <div class="masthead__statusbar">
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero__rail">
+          <div class="hero__eyebrow">Dify Plugin Packager / Offline Repackaging Console</div>
+          <div class="hero__signals">
             <span class="signal-pill" id="hostArchChip">Runtime --</span>
-            <span class="signal-pill signal-pill--ghost" id="hostOsChip">Host --</span>
-            <span class="signal-pill signal-pill--ghost" id="mirrorChip">Mirror --</span>
+            <span class="signal-pill signal-pill--soft" id="hostOsChip">Host --</span>
+            <span class="signal-pill signal-pill--soft" id="mirrorChip">Mirror --</span>
           </div>
         </div>
 
-        <div class="masthead__body">
-          <div class="masthead__copy">
-            <p class="section-tag">Packaging Control Room</p>
-            <h1>把插件离线包重打包流程，压缩进一块可直接操作的工作甲板。</h1>
-            <p class="masthead__lead">
-              面向 Linux / Kubernetes 部署场景的单页控制台。保留现有
+        <div class="hero__main">
+          <div class="hero__copy">
+            <p class="section-tag">Operator Deck</p>
+            <h1>Turn plugin offline repackaging into one clean control deck.</h1>
+            <p class="hero__lead">
+              Built for Linux and Kubernetes deployment flows. Keep the existing
               <code>dify-plugin-repackaging-plus</code>
-              脚本能力，只把最常用的输入、状态追踪和产物下载整理成更清楚的操作路径。
+              script chain, but tighten ingress, runtime strategy, live logs, and artifact delivery into one harder, cleaner workflow.
             </p>
+
+            <div class="hero__markers">
+              <div class="hero-marker">
+                <span class="hero-marker__label">Ingress</span>
+                <strong>Three unified entry paths</strong>
+              </div>
+              <div class="hero-marker">
+                <span class="hero-marker__label">Runtime</span>
+                <strong>amd64 / arm64 routing</strong>
+              </div>
+              <div class="hero-marker">
+                <span class="hero-marker__label">Delivery</span>
+                <strong>Logs and artifacts in one view</strong>
+              </div>
+            </div>
           </div>
 
-          <aside class="briefing">
+          <aside class="hero__brief">
             <article class="brief-card brief-card--highlight">
-              <span class="brief-card__label">Operation Brief</span>
-              <div class="brief-card__value">3 种来源入口</div>
-              <p>本地上传、GitHub Release、Marketplace 三条接入链路统一到同一套任务通道。</p>
-            </article>
-
-            <article class="brief-card">
               <span class="brief-card__label">Compatibility</span>
-              <div class="brief-card__value" id="compatibilityHint">等待环境探测</div>
-              <p>依据当前主机架构自动判断脚本路径，避免选择不支持的目标组合。</p>
+              <strong id="compatibilityHint">Inspecting runtime</strong>
+              <p>Host OS and target architecture are checked before the job is dispatched.</p>
             </article>
 
             <article class="brief-card">
-              <span class="brief-card__label">Delivery</span>
-              <div class="brief-card__value">实时日志 + 直接下载</div>
-              <p>脚本输出流、最近任务和最终离线包会在同一视野里连续更新。</p>
+              <span class="brief-card__label">Execution Model</span>
+              <strong>Single submit, single lane, continuous feedback</strong>
+              <p>Source selection, script execution, and telemetry now live in one work surface instead of several small cards.</p>
+            </article>
+
+            <article class="brief-card">
+              <span class="brief-card__label">Output Channel</span>
+              <strong>Live logs + direct download</strong>
+              <p>The finished offline build is exposed immediately, while the recent jobs rail keeps the latest 20 runs visible.</p>
             </article>
           </aside>
         </div>
       </header>
 
-      <main class="deck-grid">
+      <main class="workspace">
         <section class="panel panel--command">
           <div class="panel__heading">
             <div>
-              <div class="panel__kicker">Deck 01</div>
-              <h2>任务控制台</h2>
+              <div class="panel__eyebrow">Command Deck</div>
+              <h2>Job Console</h2>
             </div>
-            <p>先锁定入口与目标架构，再把一次 repackaging 作业推入执行通道。</p>
+            <p>Choose the source and target architecture, then send one repackaging job into the execution lane. Only the controls that change the outcome stay on screen.</p>
           </div>
 
           <form id="jobForm" class="job-form">
-            <div class="control-band">
+            <div class="control-row">
               <div class="field-group">
-                <label class="field-label">来源入口</label>
+                <label class="field-label">Source Input</label>
                 <div class="segment-control" id="sourceSwitch">
-                  <button type="button" class="segment-control__item is-active" data-source="local" aria-pressed="true">本地上传</button>
+                  <button type="button" class="segment-control__item is-active" data-source="local" aria-pressed="true">Local Upload</button>
                   <button type="button" class="segment-control__item" data-source="github" aria-pressed="false">GitHub Release</button>
                   <button type="button" class="segment-control__item" data-source="market" aria-pressed="false">Marketplace</button>
                 </div>
               </div>
 
               <div class="field-group">
-                <label class="field-label">目标架构</label>
+                <label class="field-label">Target Architecture</label>
                 <div class="segment-control" id="archSwitch">
                   <button type="button" class="segment-control__item is-active" data-arch="amd64" aria-pressed="true">amd64</button>
                   <button type="button" class="segment-control__item" data-arch="arm64" aria-pressed="false">arm64</button>
@@ -85,13 +100,13 @@
             <input type="hidden" name="source" id="sourceInput" value="local" />
             <input type="hidden" name="target_arch" id="archInput" value="amd64" />
 
-            <div class="dispatch-strip">
-              <div class="dispatch-card">
-                <span class="dispatch-card__label">Dispatch Rule</span>
-                <div class="strategy-card" id="strategyCard">正在读取运行环境信息…</div>
-              </div>
+            <div class="dispatch-grid">
+              <article class="dispatch-card">
+                <span class="dispatch-card__label">Execution Rule</span>
+                <p class="strategy-card" id="strategyCard">Reading runtime strategy...</p>
+              </article>
 
-              <div class="dispatch-card dispatch-card--compact">
+              <article class="dispatch-card dispatch-card--pipeline">
                 <span class="dispatch-card__label">Pipeline</span>
                 <div class="pipeline-track">
                   <span>INGEST</span>
@@ -100,16 +115,16 @@
                   <i></i>
                   <span>DELIVER</span>
                 </div>
-              </div>
+              </article>
             </div>
 
-            <div class="source-layout">
+            <div class="workbench">
               <aside class="source-guide">
                 <button type="button" class="source-guide__item is-active" data-guide="local">
                   <span class="source-guide__index">01</span>
                   <div>
-                    <strong>本地上传</strong>
-                    <p>已有 .difypkg，直接投递到输入区重新打包。</p>
+                    <strong>Local Upload</strong>
+                    <p>Use an existing .difypkg file and send it straight into the repackaging lane.</p>
                   </div>
                 </button>
 
@@ -117,7 +132,7 @@
                   <span class="source-guide__index">02</span>
                   <div>
                     <strong>GitHub Release</strong>
-                    <p>指定仓库、Release 标签和产物文件名，走远端拉取链路。</p>
+                    <p>Point at a repository, release tag, and asset name, then fetch the package remotely.</p>
                   </div>
                 </button>
 
@@ -125,7 +140,7 @@
                   <span class="source-guide__index">03</span>
                   <div>
                     <strong>Marketplace</strong>
-                    <p>按作者、插件名和版本号下载原始包，再执行离线重打包。</p>
+                    <p>Pull the original package from the marketplace first, then run the offline rebuild.</p>
                   </div>
                 </button>
               </aside>
@@ -133,12 +148,12 @@
               <div class="source-stage">
                 <div class="source-block is-active" data-block="local">
                   <div class="field-group">
-                    <label class="field-label" for="packageFile">上传 .difypkg</label>
+                    <label class="field-label" for="packageFile">Upload .difypkg</label>
                     <label class="upload-dropzone" for="packageFile">
                       <input id="packageFile" name="package_file" type="file" accept=".difypkg" />
                       <span class="upload-dropzone__eyebrow">Drop Zone</span>
-                      <span class="upload-dropzone__title">拖入文件，或点击选择插件包</span>
-                      <span class="upload-dropzone__hint" id="fileHint">仅在本地上传模式下生效</span>
+                      <span class="upload-dropzone__title">Drop a package here or click to browse</span>
+                      <span class="upload-dropzone__hint" id="fileHint">Only used in local upload mode</span>
                     </label>
                   </div>
                 </div>
@@ -146,17 +161,17 @@
                 <div class="source-block" data-block="github">
                   <div class="field-grid">
                     <div class="field-group">
-                      <label class="field-label" for="githubRepo">GitHub 仓库</label>
+                      <label class="field-label" for="githubRepo">GitHub Repository</label>
                       <input id="githubRepo" name="github_repo" class="text-input" placeholder="owner/repository" />
                     </div>
                     <div class="field-group">
-                      <label class="field-label" for="githubRelease">Release 标签</label>
+                      <label class="field-label" for="githubRelease">Release Tag</label>
                       <input id="githubRelease" name="github_release" class="text-input" placeholder="v0.0.1" />
                     </div>
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label" for="githubAsset">产物文件名</label>
+                    <label class="field-label" for="githubAsset">Asset Filename</label>
                     <input id="githubAsset" name="github_asset" class="text-input" placeholder="plugin-name.difypkg" />
                   </div>
                 </div>
@@ -164,32 +179,32 @@
                 <div class="source-block" data-block="market">
                   <div class="field-grid">
                     <div class="field-group">
-                      <label class="field-label" for="marketAuthor">作者</label>
+                      <label class="field-label" for="marketAuthor">Author</label>
                       <input id="marketAuthor" name="market_author" class="text-input" placeholder="langgenius" />
                     </div>
                     <div class="field-group">
-                      <label class="field-label" for="marketName">插件名</label>
+                      <label class="field-label" for="marketName">Plugin Name</label>
                       <input id="marketName" name="market_name" class="text-input" placeholder="agent" />
                     </div>
                   </div>
 
                   <div class="field-group">
-                    <label class="field-label" for="marketVersion">版本</label>
+                    <label class="field-label" for="marketVersion">Version</label>
                     <input id="marketVersion" name="market_version" class="text-input" placeholder="0.0.9" />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="form-actions">
+            <div class="form-footer">
               <button type="submit" class="primary-button" id="submitButton">
-                <span class="primary-button__title">Launch Packaging Job</span>
-                <span class="primary-button__meta">生成离线重打包任务</span>
+                <span class="primary-button__title">Dispatch Packaging Job</span>
+                <span class="primary-button__meta">Run repackaging pipeline</span>
               </button>
 
               <div class="action-copy">
-                <span class="inline-note" id="submitHint">任务启动后，右侧会持续刷新状态与日志。</span>
-                <span class="inline-note inline-note--muted">不修改后端接口，只重构操作视图与反馈密度。</span>
+                <span class="inline-note" id="submitHint" aria-live="polite">After dispatch, the telemetry panel keeps refreshing status and logs.</span>
+                <span class="inline-note inline-note--muted">Backend endpoints stay the same. This pass only rebuilds the UI structure, hierarchy, and feedback density.</span>
               </div>
             </div>
           </form>
@@ -198,57 +213,57 @@
         <section class="panel panel--telemetry">
           <div class="panel__heading">
             <div>
-              <div class="panel__kicker">Deck 02</div>
-              <h2>运行遥测</h2>
+              <div class="panel__eyebrow">Telemetry Deck</div>
+              <h2>Telemetry</h2>
             </div>
-            <p>当前作业、输出产物、实时流日志和最近执行记录统一放在同一块监控面板内。</p>
+            <p>The active job, runtime status, artifact delivery, live output, and recent executions are kept inside one monitoring surface.</p>
           </div>
 
-          <div class="status-strip">
+          <div class="status-grid">
             <article class="status-tile">
-              <span class="status-tile__label">当前任务</span>
-              <div class="status-tile__value" id="jobIdentity">尚未创建</div>
+              <span class="status-tile__label">Active Job</span>
+              <div class="status-tile__value" id="jobIdentity">Not created yet</div>
             </article>
 
             <article class="status-tile">
-              <span class="status-tile__label">状态</span>
-              <div class="status-pill status-pill--idle" id="jobStatus">待机</div>
+              <span class="status-tile__label">Status</span>
+              <div class="status-pill status-pill--idle" id="jobStatus">Idle</div>
             </article>
 
             <article class="status-tile">
-              <span class="status-tile__label">来源 / 目标</span>
+              <span class="status-tile__label">Source / Target</span>
               <div class="status-tile__value" id="jobSource">-</div>
             </article>
 
             <article class="status-tile">
-              <span class="status-tile__label">最近更新时间</span>
+              <span class="status-tile__label">Last Update</span>
               <div class="status-tile__value" id="jobUpdatedAt">-</div>
             </article>
           </div>
 
           <div class="artifact-card" id="artifactCard">
             <div>
-              <div class="artifact-card__label">输出包</div>
-              <div class="artifact-card__name" id="artifactName">暂无</div>
+              <div class="artifact-card__label">Output Package</div>
+              <div class="artifact-card__name" id="artifactName">None</div>
             </div>
-            <a class="artifact-card__download is-disabled" id="artifactLink" href="#" aria-disabled="true">下载离线包</a>
+            <a class="artifact-card__download is-disabled" id="artifactLink" href="#" aria-disabled="true">Download Offline Build</a>
           </div>
 
           <div class="console-card">
             <div class="console-card__header">
               <span>Live Script Output</span>
-              <button type="button" class="ghost-button" id="clearConsoleButton">清空</button>
+              <button type="button" class="ghost-button" id="clearConsoleButton">Clear Output</button>
             </div>
-            <pre id="consoleOutput" class="console-output">等待任务启动…</pre>
+            <pre id="consoleOutput" class="console-output">Waiting for a job...</pre>
           </div>
 
           <div class="recent-jobs">
             <div class="recent-jobs__header">
               <div>
-                <h3>最近任务</h3>
-                <p>点击任一记录可重新查看状态与完整日志。</p>
+                <h3>Recent Jobs</h3>
+                <p>Click any record to reload its status, error state, and full execution log.</p>
               </div>
-              <button type="button" class="ghost-button" id="refreshJobsButton">刷新</button>
+              <button type="button" class="ghost-button" id="refreshJobsButton">Refresh List</button>
             </div>
             <div class="recent-jobs__list" id="jobsList"></div>
           </div>

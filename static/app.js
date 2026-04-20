@@ -1,23 +1,23 @@
-const DEFAULT_CONSOLE_TEXT = "等待任务启动…";
+const DEFAULT_CONSOLE_TEXT = "Waiting for a job...";
 
 const STATUS_LABELS = {
-  idle: "待机",
-  queued: "排队中",
-  running: "执行中",
-  succeeded: "已完成",
-  failed: "失败",
+  idle: "Idle",
+  queued: "Queued",
+  running: "Running",
+  succeeded: "Succeeded",
+  failed: "Failed",
 };
 
 const STATUS_HINTS = {
-  idle: "任务启动后，右侧会持续刷新状态与日志。",
-  queued: "任务已进入队列，正在准备执行环境。",
-  running: "脚本执行中，实时日志会持续流入下方终端。",
-  succeeded: "离线包已生成，可以直接下载。",
-  failed: "任务执行失败，请检查日志输出和输入参数。",
+  idle: "After dispatch, the telemetry panel keeps refreshing status and logs.",
+  queued: "The job is queued and the execution environment is being prepared.",
+  running: "The script is running. Live output will continue streaming into the console below.",
+  succeeded: "The offline build is ready and can be downloaded directly.",
+  failed: "The job failed. Check the output log and input fields.",
 };
 
 const SOURCE_LABELS = {
-  local: "本地上传",
+  local: "Local Upload",
   github: "GitHub Release",
   market: "Marketplace",
 };
@@ -44,6 +44,7 @@ const mirrorChip = document.getElementById("mirrorChip");
 const jobsList = document.getElementById("jobsList");
 const clearConsoleButton = document.getElementById("clearConsoleButton");
 const refreshJobsButton = document.getElementById("refreshJobsButton");
+const uploadDropzone = document.querySelector(".upload-dropzone");
 
 let currentJobId = null;
 let currentSource = "local";
@@ -75,7 +76,7 @@ function formatDate(value) {
     return value;
   }
 
-  return date.toLocaleString("zh-CN", { hour12: false });
+  return date.toLocaleString("en-CA", { hour12: false });
 }
 
 function simplifyUrl(value) {
@@ -84,8 +85,7 @@ function simplifyUrl(value) {
   }
 
   try {
-    const url = new URL(value);
-    return url.host;
+    return new URL(value).host;
   } catch {
     return value;
   }
@@ -121,6 +121,12 @@ function appendLog(line) {
   consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }
 
+function updateFileHint() {
+  const selectedName = packageFile.files?.[0]?.name;
+  fileHint.textContent = selectedName || "Only used in local upload mode";
+  uploadDropzone?.classList.toggle("is-filled", Boolean(selectedName));
+}
+
 function setSource(source) {
   currentSource = source;
   sourceInput.value = source;
@@ -139,6 +145,8 @@ function setSource(source) {
   document.querySelectorAll(".source-guide__item").forEach((item) => {
     item.classList.toggle("is-active", item.dataset.guide === source);
   });
+
+  updateFileHint();
 }
 
 function setArch(arch) {
@@ -161,23 +169,23 @@ function setArch(arch) {
 
 function buildCompatibilityHint() {
   if (!appConfig) {
-    return "等待环境探测";
+    return "Inspecting runtime";
   }
 
   if (appConfig.host_os !== "linux") {
-    return `当前宿主是 ${appConfig.host_os} / ${appConfig.host_arch}，界面可运行，但真正打包必须在 Linux 环境执行。`;
+    return `Host is ${appConfig.host_os} / ${appConfig.host_arch}. The interface works, but packaging must execute on Linux.`;
   }
 
   if (appConfig.host_arch === "arm64") {
-    return "当前是 arm64 宿主，仅支持 arm64 目标，不支持反向生成 amd64。";
+    return "Host is arm64. Only the native arm64 path is available; reverse packaging to amd64 is not supported.";
   }
 
-  return "当前是 amd64 宿主，可原生打 amd64，也可切换到 amd64 -> arm64 的转换链路。";
+  return "Host is amd64. Native amd64 builds work directly, and the amd64 -> arm64 conversion path is available.";
 }
 
 function updateStrategyHint() {
   if (!appConfig) {
-    strategyCard.textContent = "正在读取运行环境信息…";
+    strategyCard.textContent = "Reading runtime strategy...";
     return;
   }
 
@@ -185,16 +193,16 @@ function updateStrategyHint() {
   const hostOs = appConfig.host_os;
 
   if (hostOs !== "linux") {
-    strategyCard.textContent = `当前宿主为 ${hostOs} / ${hostArch}。界面可操作，但后台重打包命令会因非 Linux 环境而失败。`;
+    strategyCard.textContent = `Current host is ${hostOs} / ${hostArch}. The UI can still be used, but the backend packaging command will fail outside Linux.`;
     return;
   }
 
   if (currentArch === "arm64" && hostArch !== "arm64") {
-    strategyCard.textContent = `当前宿主是 ${hostArch}，目标是 arm64。系统会自动调用 amd64 -> arm64 的跨架构脚本。`;
+    strategyCard.textContent = `Current host is ${hostArch} and the target is arm64. The system will route into the amd64 -> arm64 cross-architecture script chain.`;
     return;
   }
 
-  strategyCard.textContent = `当前宿主是 ${hostArch}，目标是 ${currentArch}。系统会直接使用常规重打包脚本。`;
+  strategyCard.textContent = `Current host is ${hostArch} and the target is ${currentArch}. The standard repackaging script will be used.`;
 }
 
 function updateArchAvailability() {
@@ -204,7 +212,7 @@ function updateArchAvailability() {
     const unsupported = isTargetUnsupported(button.dataset.arch);
     button.disabled = unsupported;
     button.classList.toggle("is-disabled", unsupported);
-    button.title = unsupported ? "当前宿主不支持该目标架构" : "";
+    button.title = unsupported ? "This target architecture is not supported on the current host." : "";
 
     if (!unsupported && !fallbackArch) {
       fallbackArch = button.dataset.arch;
@@ -223,7 +231,7 @@ function renderJobState(snapshot) {
   currentJobId = snapshot.id || currentJobId;
   currentJobStatus = snapshot.status || "idle";
 
-  jobIdentity.textContent = snapshot.id || "尚未创建";
+  jobIdentity.textContent = snapshot.id || "Not created yet";
   jobSource.textContent = snapshot.source
     ? `${formatSourceText(snapshot.source)} / ${snapshot.target_arch || "-"}`
     : "-";
@@ -234,7 +242,7 @@ function renderJobState(snapshot) {
   jobStatus.className = formatStatusClass(snapshot.status);
   jobStatus.title = snapshot.status || "idle";
 
-  artifactName.textContent = snapshot.artifact_name || "暂无";
+  artifactName.textContent = snapshot.artifact_name || "None";
 
   if (snapshot.artifact_name && snapshot.id) {
     artifactLink.href = `/api/jobs/${snapshot.id}/download`;
@@ -261,11 +269,11 @@ function renderJobsList(items) {
 
     const title = document.createElement("div");
     title.className = "recent-job__title";
-    title.textContent = "暂无任务记录";
+    title.textContent = "No jobs yet";
 
     const meta = document.createElement("div");
     meta.className = "recent-job__meta";
-    meta.textContent = "一旦提交作业，这里会显示最近 20 条记录。";
+    meta.textContent = "Once a job is submitted, the latest 20 runs will appear here.";
 
     empty.append(title, meta);
     jobsList.append(empty);
@@ -318,7 +326,7 @@ function renderJobsList(items) {
 async function loadConfig() {
   const response = await fetch("/api/config");
   if (!response.ok) {
-    throw new Error("读取运行环境失败");
+    throw new Error("Failed to load runtime config");
   }
 
   appConfig = await response.json();
@@ -336,11 +344,13 @@ async function loadConfig() {
 async function loadJobs() {
   const response = await fetch("/api/jobs");
   if (!response.ok) {
-    throw new Error("读取任务列表失败");
+    throw new Error("Failed to load job list");
   }
 
   const payload = await response.json();
-  renderJobsList(payload.items || []);
+  const items = payload.items || [];
+  renderJobsList(items);
+  return items;
 }
 
 function closeStream() {
@@ -382,7 +392,7 @@ async function inspectJob(jobId) {
   const payload = await response.json();
 
   if (!response.ok) {
-    throw new Error(payload.detail || "读取任务详情失败");
+    throw new Error(payload.detail || "Failed to load job details");
   }
 
   renderJobState(payload);
@@ -403,7 +413,7 @@ async function submitJob(event) {
 
   isSubmitting = true;
   syncSubmitState();
-  submitHint.textContent = "任务已提交，正在启动执行线程…";
+  submitHint.textContent = "Job submitted. Starting execution thread...";
 
   const formData = new FormData(jobForm);
   formData.set("source", currentSource);
@@ -417,11 +427,11 @@ async function submitJob(event) {
     const payload = await response.json();
 
     if (!response.ok) {
-      throw new Error(payload.detail || "提交失败");
+      throw new Error(payload.detail || "Submit failed");
     }
 
     renderJobState(payload);
-    appendLog("[deck] 作业已创建，正在接入实时日志流。");
+    appendLog("[deck] Job created. Connecting to live output stream.");
 
     isSubmitting = false;
     syncSubmitState();
@@ -448,9 +458,7 @@ document.querySelectorAll("#archSwitch .segment-control__item").forEach((button)
   button.addEventListener("click", () => setArch(button.dataset.arch));
 });
 
-packageFile.addEventListener("change", () => {
-  fileHint.textContent = packageFile.files?.[0]?.name || "仅在本地上传模式下生效";
-});
+packageFile.addEventListener("change", updateFileHint);
 
 clearConsoleButton.addEventListener("click", () => resetConsole());
 
@@ -479,7 +487,15 @@ setSource(currentSource);
 setArch(currentArch);
 resetConsole();
 
-Promise.all([loadConfig(), loadJobs()]).catch((error) => {
-  consoleOutput.textContent = `[deck] 初始化失败: ${error.message}`;
-  submitHint.textContent = error.message;
-});
+Promise.all([loadConfig(), loadJobs()])
+  .then(([, items]) => {
+    if (!currentJobId && items.length) {
+      return inspectJob(items[0].id);
+    }
+
+    return null;
+  })
+  .catch((error) => {
+    consoleOutput.textContent = `[deck] Boot failed: ${error.message}`;
+    submitHint.textContent = error.message;
+  });
