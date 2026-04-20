@@ -8,8 +8,6 @@ pipeline {
 
   environment {
     APP_NAME = 'dify-plugin-packager-ui'
-    APP_PORT = '18080'
-    HEALTH_URL = 'http://127.0.0.1:18080/api/config'
     PYTHON_IMAGE = 'python:3.12-slim-bookworm'
     DEBIAN_MIRROR = 'http://mirrors.aliyun.com/debian'
     DEBIAN_SECURITY_MIRROR = 'http://mirrors.aliyun.com/debian-security'
@@ -72,7 +70,17 @@ pipeline {
       steps {
         sh '''
           set -eux
-          curl -fsS ${HEALTH_URL} > /dev/null
+          for i in $(seq 1 30); do
+            status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' ${APP_NAME} 2>/dev/null || true)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker ps
+          docker logs ${APP_NAME} --tail 200 || true
+          exit 1
         '''
       }
     }
