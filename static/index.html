@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1d3142" />
+    <title>Dify Plugin Packager | Control Deck</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="masthead">
+        <div class="masthead__topline">
+          <div class="masthead__eyebrow">Dify Plugin Packager / Offline Build Deck</div>
+          <div class="masthead__statusbar">
+            <span class="signal-pill" id="hostArchChip">Runtime --</span>
+            <span class="signal-pill signal-pill--ghost" id="hostOsChip">Host --</span>
+            <span class="signal-pill signal-pill--ghost" id="mirrorChip">Mirror --</span>
+          </div>
+        </div>
+
+        <div class="masthead__body">
+          <div class="masthead__copy">
+            <p class="section-tag">Packaging Control Room</p>
+            <h1>把插件离线包重打包流程，压缩进一块可直接操作的工作甲板。</h1>
+            <p class="masthead__lead">
+              面向 Linux / Kubernetes 部署场景的单页控制台。保留现有
+              <code>dify-plugin-repackaging-plus</code>
+              脚本能力，只把最常用的输入、状态追踪和产物下载整理成更清楚的操作路径。
+            </p>
+          </div>
+
+          <aside class="briefing">
+            <article class="brief-card brief-card--highlight">
+              <span class="brief-card__label">Operation Brief</span>
+              <div class="brief-card__value">3 种来源入口</div>
+              <p>本地上传、GitHub Release、Marketplace 三条接入链路统一到同一套任务通道。</p>
+            </article>
+
+            <article class="brief-card">
+              <span class="brief-card__label">Compatibility</span>
+              <div class="brief-card__value" id="compatibilityHint">等待环境探测</div>
+              <p>依据当前主机架构自动判断脚本路径，避免选择不支持的目标组合。</p>
+            </article>
+
+            <article class="brief-card">
+              <span class="brief-card__label">Delivery</span>
+              <div class="brief-card__value">实时日志 + 直接下载</div>
+              <p>脚本输出流、最近任务和最终离线包会在同一视野里连续更新。</p>
+            </article>
+          </aside>
+        </div>
+      </header>
+
+      <main class="deck-grid">
+        <section class="panel panel--command">
+          <div class="panel__heading">
+            <div>
+              <div class="panel__kicker">Deck 01</div>
+              <h2>任务控制台</h2>
+            </div>
+            <p>先锁定入口与目标架构，再把一次 repackaging 作业推入执行通道。</p>
+          </div>
+
+          <form id="jobForm" class="job-form">
+            <div class="control-band">
+              <div class="field-group">
+                <label class="field-label">来源入口</label>
+                <div class="segment-control" id="sourceSwitch">
+                  <button type="button" class="segment-control__item is-active" data-source="local" aria-pressed="true">本地上传</button>
+                  <button type="button" class="segment-control__item" data-source="github" aria-pressed="false">GitHub Release</button>
+                  <button type="button" class="segment-control__item" data-source="market" aria-pressed="false">Marketplace</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">目标架构</label>
+                <div class="segment-control" id="archSwitch">
+                  <button type="button" class="segment-control__item is-active" data-arch="amd64" aria-pressed="true">amd64</button>
+                  <button type="button" class="segment-control__item" data-arch="arm64" aria-pressed="false">arm64</button>
+                </div>
+              </div>
+            </div>
+
+            <input type="hidden" name="source" id="sourceInput" value="local" />
+            <input type="hidden" name="target_arch" id="archInput" value="amd64" />
+
+            <div class="dispatch-strip">
+              <div class="dispatch-card">
+                <span class="dispatch-card__label">Dispatch Rule</span>
+                <div class="strategy-card" id="strategyCard">正在读取运行环境信息…</div>
+              </div>
+
+              <div class="dispatch-card dispatch-card--compact">
+                <span class="dispatch-card__label">Pipeline</span>
+                <div class="pipeline-track">
+                  <span>INGEST</span>
+                  <i></i>
+                  <span>REPACKAGE</span>
+                  <i></i>
+                  <span>DELIVER</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="source-layout">
+              <aside class="source-guide">
+                <button type="button" class="source-guide__item is-active" data-guide="local">
+                  <span class="source-guide__index">01</span>
+                  <div>
+                    <strong>本地上传</strong>
+                    <p>已有 .difypkg，直接投递到输入区重新打包。</p>
+                  </div>
+                </button>
+
+                <button type="button" class="source-guide__item" data-guide="github">
+                  <span class="source-guide__index">02</span>
+                  <div>
+                    <strong>GitHub Release</strong>
+                    <p>指定仓库、Release 标签和产物文件名，走远端拉取链路。</p>
+                  </div>
+                </button>
+
+                <button type="button" class="source-guide__item" data-guide="market">
+                  <span class="source-guide__index">03</span>
+                  <div>
+                    <strong>Marketplace</strong>
+                    <p>按作者、插件名和版本号下载原始包，再执行离线重打包。</p>
+                  </div>
+                </button>
+              </aside>
+
+              <div class="source-stage">
+                <div class="source-block is-active" data-block="local">
+                  <div class="field-group">
+                    <label class="field-label" for="packageFile">上传 .difypkg</label>
+                    <label class="upload-dropzone" for="packageFile">
+                      <input id="packageFile" name="package_file" type="file" accept=".difypkg" />
+                      <span class="upload-dropzone__eyebrow">Drop Zone</span>
+                      <span class="upload-dropzone__title">拖入文件，或点击选择插件包</span>
+                      <span class="upload-dropzone__hint" id="fileHint">仅在本地上传模式下生效</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="source-block" data-block="github">
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label class="field-label" for="githubRepo">GitHub 仓库</label>
+                      <input id="githubRepo" name="github_repo" class="text-input" placeholder="owner/repository" />
+                    </div>
+                    <div class="field-group">
+                      <label class="field-label" for="githubRelease">Release 标签</label>
+                      <input id="githubRelease" name="github_release" class="text-input" placeholder="v0.0.1" />
+                    </div>
+                  </div>
+
+                  <div class="field-group">
+                    <label class="field-label" for="githubAsset">产物文件名</label>
+                    <input id="githubAsset" name="github_asset" class="text-input" placeholder="plugin-name.difypkg" />
+                  </div>
+                </div>
+
+                <div class="source-block" data-block="market">
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label class="field-label" for="marketAuthor">作者</label>
+                      <input id="marketAuthor" name="market_author" class="text-input" placeholder="langgenius" />
+                    </div>
+                    <div class="field-group">
+                      <label class="field-label" for="marketName">插件名</label>
+                      <input id="marketName" name="market_name" class="text-input" placeholder="agent" />
+                    </div>
+                  </div>
+
+                  <div class="field-group">
+                    <label class="field-label" for="marketVersion">版本</label>
+                    <input id="marketVersion" name="market_version" class="text-input" placeholder="0.0.9" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-button" id="submitButton">
+                <span class="primary-button__title">Launch Packaging Job</span>
+                <span class="primary-button__meta">生成离线重打包任务</span>
+              </button>
+
+              <div class="action-copy">
+                <span class="inline-note" id="submitHint">任务启动后，右侧会持续刷新状态与日志。</span>
+                <span class="inline-note inline-note--muted">不修改后端接口，只重构操作视图与反馈密度。</span>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel panel--telemetry">
+          <div class="panel__heading">
+            <div>
+              <div class="panel__kicker">Deck 02</div>
+              <h2>运行遥测</h2>
+            </div>
+            <p>当前作业、输出产物、实时流日志和最近执行记录统一放在同一块监控面板内。</p>
+          </div>
+
+          <div class="status-strip">
+            <article class="status-tile">
+              <span class="status-tile__label">当前任务</span>
+              <div class="status-tile__value" id="jobIdentity">尚未创建</div>
+            </article>
+
+            <article class="status-tile">
+              <span class="status-tile__label">状态</span>
+              <div class="status-pill status-pill--idle" id="jobStatus">待机</div>
+            </article>
+
+            <article class="status-tile">
+              <span class="status-tile__label">来源 / 目标</span>
+              <div class="status-tile__value" id="jobSource">-</div>
+            </article>
+
+            <article class="status-tile">
+              <span class="status-tile__label">最近更新时间</span>
+              <div class="status-tile__value" id="jobUpdatedAt">-</div>
+            </article>
+          </div>
+
+          <div class="artifact-card" id="artifactCard">
+            <div>
+              <div class="artifact-card__label">输出包</div>
+              <div class="artifact-card__name" id="artifactName">暂无</div>
+            </div>
+            <a class="artifact-card__download is-disabled" id="artifactLink" href="#" aria-disabled="true">下载离线包</a>
+          </div>
+
+          <div class="console-card">
+            <div class="console-card__header">
+              <span>Live Script Output</span>
+              <button type="button" class="ghost-button" id="clearConsoleButton">清空</button>
+            </div>
+            <pre id="consoleOutput" class="console-output">等待任务启动…</pre>
+          </div>
+
+          <div class="recent-jobs">
+            <div class="recent-jobs__header">
+              <div>
+                <h3>最近任务</h3>
+                <p>点击任一记录可重新查看状态与完整日志。</p>
+              </div>
+              <button type="button" class="ghost-button" id="refreshJobsButton">刷新</button>
+            </div>
+            <div class="recent-jobs__list" id="jobsList"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dify-plugin-packager-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dify-plugin-packager-ui
+  template:
+    metadata:
+      labels:
+        app: dify-plugin-packager-ui
+    spec:
+      containers:
+        - name: web
+          image: your-registry/dify-plugin-packager-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PIP_MIRROR_URL
+              value: https://mirrors.aliyun.com/pypi/simple
+            - name: GITHUB_API_URL
+              value: https://github.com
+            - name: MARKETPLACE_API_URL
+              value: https://marketplace.dify.ai
+          volumeMounts:
+            - name: jobs
+              mountPath: /app/data/jobs
+          readinessProbe:
+            httpGet:
+              path: /api/config
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/config
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+      volumes:
+        - name: jobs
+          emptyDir: {}
