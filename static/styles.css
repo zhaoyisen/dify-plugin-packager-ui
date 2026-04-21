@@ -1,11 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap");
 
 :root {
-  --shell-pad: 14px;
-  --gap: 14px;
-  --top-height: 94px;
-  --bottom-height: 236px;
-  --panel-pad: 18px;
+  --shell-pad: clamp(16px, 0.9vw, 22px);
+  --gap: clamp(12px, 0.75vw, 16px);
+  --top-height: clamp(88px, 9vh, 108px);
+  --bottom-height: clamp(220px, 22vh, 252px);
+  --panel-pad: clamp(14px, 0.9vw, 18px);
   --cut: 18px;
   --bg: #081117;
   --bg-deep: #04090d;
@@ -113,7 +113,7 @@ label:has(input[type="file"]):hover {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 252px minmax(0, 1fr) 312px;
+  grid-template-columns: clamp(250px, 14vw, 288px) minmax(0, 1fr) clamp(292px, 16vw, 336px);
   grid-template-rows: var(--top-height) minmax(0, 1fr) var(--bottom-height);
   grid-template-areas:
     "bridge bridge bridge"
@@ -121,7 +121,7 @@ label:has(input[type="file"]):hover {
     "rail activity activity";
   gap: var(--gap);
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   padding: var(--shell-pad);
 }
 
@@ -129,7 +129,12 @@ label:has(input[type="file"]):hover {
 .system-rail,
 .mission-composer,
 .execution-stack,
-.activity-strip,
+.activity-strip {
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+
 .metric-chip,
 .rail-card,
 .source-toggle,
@@ -143,7 +148,7 @@ label:has(input[type="file"]):hover {
 .console-tab {
   position: relative;
   overflow: hidden;
-  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  border-radius: 2px;
 }
 
 .bevel-panel {
@@ -194,9 +199,9 @@ label:has(input[type="file"]):hover {
   grid-area: bridge;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
+  gap: 14px;
   align-items: center;
-  padding: 18px 22px;
+  padding: clamp(14px, 1vw, 20px);
 }
 
 .bridge-bar__copy,
@@ -227,21 +232,21 @@ label:has(input[type="file"]):hover {
 }
 
 .bridge-bar h1 {
-  max-width: 760px;
-  margin: 6px 0 8px;
+  max-width: 720px;
+  margin: 4px 0 6px;
   font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  font-size: clamp(28px, 3vw, 40px);
+  font-size: clamp(28px, 2.1vw, 40px);
   font-weight: 900;
-  line-height: 1.06;
+  line-height: 1.08;
   letter-spacing: -0.04em;
 }
 
 .bridge-bar p {
-  max-width: 760px;
+  max-width: 640px;
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .bridge-bar__metrics {
@@ -252,16 +257,16 @@ label:has(input[type="file"]):hover {
 }
 
 .metric-chip {
-  min-width: 168px;
-  padding: 14px 16px;
+  min-width: 170px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(18, 31, 39, 0.88), rgba(11, 19, 24, 0.94));
 }
 
 .metric-chip strong {
   display: block;
-  margin-top: 8px;
-  font-size: 15px;
+  margin-top: 6px;
+  font-size: 14px;
   line-height: 1.3;
 }
 
@@ -270,17 +275,18 @@ label:has(input[type="file"]):hover {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: 14px;
+  gap: 12px;
   padding: var(--panel-pad);
+  overflow: hidden;
 }
 
 .rail-heading h2,
 .module-header h2 {
-  margin: 6px 0 8px;
+  margin: 4px 0 6px;
   font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
-  line-height: 1.12;
+  line-height: 1.14;
   letter-spacing: -0.03em;
 }
 
@@ -296,18 +302,20 @@ label:has(input[type="file"]):hover {
 .rail-footer p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .rail-stack {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .rail-card {
-  padding: 16px;
+  padding: 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(17, 28, 35, 0.88), rgba(11, 18, 23, 0.96));
 }
@@ -321,13 +329,13 @@ label:has(input[type="file"]):hover {
 
 .rail-card strong {
   display: block;
-  margin: 8px 0 8px;
-  font-size: 18px;
+  margin: 6px 0;
+  font-size: 16px;
   line-height: 1.3;
 }
 
 .signal-array {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -336,15 +344,15 @@ label:has(input[type="file"]):hover {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 0;
+  padding: 7px 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .signal-row strong {
   color: var(--text);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.04em;
 }
 
@@ -357,8 +365,9 @@ label:has(input[type="file"]):hover {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
+  gap: 12px;
   padding: var(--panel-pad);
+  overflow: hidden;
 }
 
 .module-header,
@@ -366,32 +375,34 @@ label:has(input[type="file"]):hover {
 .lane-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-start;
 }
 
 .module-header {
   border-bottom: 1px solid var(--line);
-  padding-bottom: 12px;
+  padding-bottom: 10px;
 }
 
 .module-header p,
 .block-header p {
-  max-width: 420px;
+  max-width: 360px;
 }
 
 .composer-flow {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: 12px;
+  overflow: hidden;
 }
 
 .composer-block {
   min-height: 0;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(16, 27, 34, 0.84), rgba(11, 19, 25, 0.96));
+  overflow: hidden;
 }
 
 .composer-block--source,
@@ -400,12 +411,13 @@ label:has(input[type="file"]):hover {
 }
 
 .block-header {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
 }
 
 .block-header h3 {
-  margin: 6px 0 0;
-  font-size: 20px;
+  margin: 4px 0 0;
+  font-size: 18px;
   line-height: 1.15;
 }
 
@@ -416,7 +428,7 @@ label:has(input[type="file"]):hover {
 .source-switch,
 .segment-line {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -427,8 +439,8 @@ label:has(input[type="file"]):hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
-  padding: 0 16px;
+  min-height: 42px;
+  padding: 0 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(18, 30, 38, 0.9), rgba(11, 19, 25, 0.96));
   color: var(--text-muted);
@@ -451,11 +463,18 @@ label:has(input[type="file"]):hover {
   height: 100%;
 }
 
+.composer-block--surface {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .source-panel {
   display: none;
   height: 100%;
-  grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.92fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.12fr) minmax(240px, 0.88fr);
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .source-panel.is-active {
@@ -464,11 +483,12 @@ label:has(input[type="file"]):hover {
 
 .upload-bay {
   position: relative;
-  min-height: 100%;
+  min-height: 0;
+  height: 100%;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: end;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--line);
   background:
     radial-gradient(circle at top right, rgba(217, 142, 78, 0.14), transparent 30%),
@@ -479,7 +499,7 @@ label:has(input[type="file"]):hover {
 .upload-bay::before {
   content: "";
   position: absolute;
-  inset: 12px;
+  inset: 10px;
   border: 1px dashed rgba(255, 255, 255, 0.12);
   clip-path: inherit;
 }
@@ -505,26 +525,29 @@ label:has(input[type="file"]):hover {
 }
 
 .upload-bay__title {
-  max-width: 460px;
+  max-width: 420px;
   font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  font-size: clamp(28px, 3vw, 38px);
+  font-size: clamp(24px, 2.2vw, 32px);
   font-weight: 900;
-  line-height: 1.08;
+  line-height: 1.1;
   letter-spacing: -0.04em;
 }
 
 .upload-bay__note {
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .surface-note {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  gap: 8px;
+  align-content: start;
+  padding: 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(15, 25, 31, 0.92), rgba(10, 16, 21, 0.98));
+  min-height: 0;
+  overflow: auto;
 }
 
 .surface-note strong,
@@ -532,7 +555,7 @@ label:has(input[type="file"]):hover {
 .artifact-preview strong,
 .timeline-item strong {
   display: block;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.3;
 }
 
@@ -548,14 +571,14 @@ label:has(input[type="file"]):hover {
   margin: 0;
   padding-left: 18px;
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.75;
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .field--wide {
@@ -564,7 +587,7 @@ label:has(input[type="file"]):hover {
 
 .field {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .field span {
@@ -577,8 +600,8 @@ label:has(input[type="file"]):hover {
 
 .field input {
   width: 100%;
-  min-height: 52px;
-  padding: 14px 16px;
+  min-height: 48px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   background: rgba(11, 18, 23, 0.96);
   color: var(--text);
@@ -591,26 +614,26 @@ label:has(input[type="file"]):hover {
 .dispatch-controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .cluster {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .dispatch-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 290px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(248px, 280px);
+  gap: 12px;
   align-items: stretch;
 }
 
 .dispatch-summary {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
   border: 1px solid var(--line);
   background:
     radial-gradient(circle at top right, rgba(217, 142, 78, 0.12), transparent 34%),
@@ -620,7 +643,7 @@ label:has(input[type="file"]):hover {
 .summary-badges,
 .artifact-preview__chips {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -629,22 +652,22 @@ label:has(input[type="file"]):hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 34px;
+  padding: 0 10px;
   border: 1px solid rgba(217, 142, 78, 0.2);
   background: rgba(20, 32, 40, 0.88);
   color: var(--text);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.04em;
 }
 
 .launch-button {
   position: relative;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   align-content: center;
-  padding: 18px 20px;
+  padding: 16px 18px;
   border: 1px solid rgba(217, 142, 78, 0.32);
   background:
     linear-gradient(135deg, #b96f38, #d98e4e 58%, #f5c18f 120%),
@@ -652,6 +675,7 @@ label:has(input[type="file"]):hover {
   color: #0f0b08;
   cursor: pointer;
   box-shadow: 0 20px 36px rgba(217, 142, 78, 0.22);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
 }
 
 .launch-button::before {
@@ -669,14 +693,14 @@ label:has(input[type="file"]):hover {
 }
 
 .launch-button__title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   line-height: 1;
 }
 
 .launch-button__meta {
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .execution-stack {
@@ -684,8 +708,9 @@ label:has(input[type="file"]):hover {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
+  gap: 12px;
   padding: var(--panel-pad);
+  overflow: hidden;
 }
 
 .module-header--stack {
@@ -695,13 +720,15 @@ label:has(input[type="file"]):hover {
 .stack-grid {
   min-height: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .stack-card {
   display: grid;
-  gap: 8px;
-  padding: 14px;
+  gap: 6px;
+  padding: 12px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(17, 28, 35, 0.88), rgba(10, 17, 22, 0.98));
 }
@@ -712,9 +739,9 @@ label:has(input[type="file"]):hover {
 
 .artifact-link {
   width: fit-content;
-  min-height: 40px;
+  min-height: 36px;
   margin-top: 2px;
-  padding: 0 14px;
+  padding: 0 12px;
   color: var(--accent-strong);
 }
 
@@ -723,8 +750,9 @@ label:has(input[type="file"]):hover {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
+  gap: 12px;
   padding: var(--panel-pad);
+  overflow: hidden;
 }
 
 .module-header--compact {
@@ -733,23 +761,23 @@ label:has(input[type="file"]):hover {
 
 .activity-meta {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  min-width: 320px;
+  min-width: 300px;
 }
 
 .activity-meta strong {
   display: block;
-  margin-bottom: 4px;
-  font-size: 15px;
+  margin-bottom: 2px;
+  font-size: 14px;
   line-height: 1.3;
 }
 
 .activity-meta p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .activity-meta__dot {
@@ -762,26 +790,28 @@ label:has(input[type="file"]):hover {
 .activity-grid {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 0.98fr) minmax(0, 1.02fr);
-  gap: 14px;
+  grid-template-columns: minmax(380px, 0.88fr) minmax(0, 1.12fr);
+  gap: 12px;
+  overflow: hidden;
 }
 
 .lane {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(14, 23, 29, 0.9), rgba(8, 13, 17, 0.98));
+  overflow: hidden;
 }
 
 .lane-header {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .lane-header h3 {
   margin: 4px 0 0;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.15;
 }
 
@@ -791,7 +821,7 @@ label:has(input[type="file"]):hover {
 
 .console-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .timeline-list,
@@ -803,15 +833,15 @@ label:has(input[type="file"]):hover {
 
 .timeline-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   padding-right: 4px;
 }
 
 .timeline-item {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(18, 30, 38, 0.9), rgba(10, 17, 22, 0.96));
   color: var(--text);
@@ -836,7 +866,7 @@ label:has(input[type="file"]):hover {
 
 .timeline-item__head strong {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.05em;
 }
 
@@ -845,13 +875,13 @@ label:has(input[type="file"]):hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 26px;
+  padding: 0 8px;
   border: 1px solid var(--line);
   background: rgba(20, 31, 38, 0.96);
   color: var(--text-muted);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -883,28 +913,30 @@ label:has(input[type="file"]):hover {
 .timeline-item__meta,
 .timeline-item__meta span {
   color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .console-frame {
   min-height: 0;
   position: relative;
+  display: grid;
   border: 1px solid var(--line);
   background:
     linear-gradient(180deg, rgba(4, 8, 12, 0.98), rgba(5, 10, 14, 0.98)),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: auto, 18px 18px;
+  overflow: hidden;
 }
 
 .console-output {
   margin: 0;
   height: 100%;
-  padding: 16px 18px 20px;
+  padding: 14px 16px 18px;
   color: #dfe9ef;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 12px;
-  line-height: 1.8;
+  font-size: 11px;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -912,8 +944,8 @@ label:has(input[type="file"]):hover {
 .artifact-preview {
   height: 100%;
   display: grid;
-  gap: 12px;
-  padding: 16px 18px 20px;
+  gap: 10px;
+  padding: 14px 16px 18px;
 }
 
 .artifact-preview[hidden] {
@@ -922,7 +954,7 @@ label:has(input[type="file"]):hover {
 
 .artifact-preview strong {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.25;
 }
 
@@ -935,12 +967,18 @@ label:has(input[type="file"]):hover {
   }
 }
 
+@media (min-width: 1680px) and (min-height: 940px) {
+  .timeline-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-height: 820px) {
   :root {
     --shell-pad: 12px;
     --gap: 12px;
     --top-height: 82px;
-    --bottom-height: 214px;
+    --bottom-height: 196px;
     --panel-pad: 14px;
   }
 
@@ -979,16 +1017,31 @@ label:has(input[type="file"]):hover {
   }
 }
 
-@media (max-width: 1180px), (max-height: 700px) {
+@media (max-width: 1600px) {
+  :root {
+    --top-height: 92px;
+    --bottom-height: 220px;
+  }
+
+  .prototype-shell {
+    grid-template-columns: 236px minmax(0, 1fr) 292px;
+  }
+
+  .bridge-bar h1 {
+    font-size: clamp(26px, 2vw, 36px);
+  }
+}
+
+@media (max-width: 1380px), (max-height: 820px) {
   body {
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow: auto;
   }
 
   .prototype-shell {
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     grid-template-columns: 1fr;
     grid-template-rows: auto;
     grid-template-areas:
@@ -1004,6 +1057,18 @@ label:has(input[type="file"]):hover {
   .execution-stack,
   .activity-strip {
     min-height: auto;
+    overflow: visible;
+  }
+
+  .rail-stack,
+  .stack-grid,
+  .activity-grid,
+  .composer-flow,
+  .timeline-list,
+  .console-output,
+  .artifact-preview,
+  .surface-note {
+    overflow: visible;
   }
 }
 

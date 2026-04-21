@@ -5,11 +5,11 @@ const SOURCE_META = {
   },
   github: {
     label: "GitHub 发布包",
-    caption: "先从发布资产抓取原包，再进入离线封装链路。",
+    caption: "先抓原包，再进入离线封装链路。",
   },
   market: {
     label: "插件市场",
-    caption: "先从插件市场拉取原包，再落入统一的离线重打包出口。",
+    caption: "先拉原包，再落入统一的离线重打包出口。",
   },
 };
 
@@ -18,13 +18,13 @@ const ROUTE_META = {
     headline: "标准 amd64 通道",
     body: "宿主为 Linux / amd64，当前选择会直接进入本机重打包链路。",
     compatHeadline: "目标可立即发起",
-    compatBody: "当前目标与宿主相容，不需要额外的跨架构准备。",
+    compatBody: "当前目标与宿主相容，不需要额外准备。",
   },
   arm64: {
     headline: "跨架构 arm64 通道",
-    body: "宿主仍为 amd64，但当前目标会切入 amd64 -> arm64 的转换脚本链路。",
+    body: "宿主仍为 amd64，但当前目标会切入 amd64 -> arm64 转换链路。",
     compatHeadline: "需要跨架构封装",
-    compatBody: "系统会预留转换步骤，中央工作区无需再展示复杂条件分支。",
+    compatBody: "系统会预留转换步骤，中央工作区不再展示复杂分支。",
   },
 };
 
@@ -37,7 +37,7 @@ const SIGN_META = {
   unsigned: {
     label: "保持未签名",
     headline: "产物将保持未签名",
-    body: "适用于只想先拿到离线包的场景，但如果目标环境强制验签，安装时会被拦截。",
+    body: "适用于只想先拿到离线包的场景，强制验签环境会拦截安装。",
   },
 };
 
@@ -48,7 +48,7 @@ const ARTIFACT_COPY = {
   },
   pending: {
     headline: "产物槽位等待新工单覆盖",
-    body: "这是一版静态原型，点击主按钮只演示提交前反馈，不会生成真实文件。",
+    body: "这是静态原型，点击主按钮只演示提交前反馈，不会生成真实文件。",
   },
 };
 
@@ -276,20 +276,17 @@ function renderActivityList() {
 
     head.append(title, status);
 
-    const copy = document.createElement("p");
-    copy.textContent = job.summary;
-
     const meta = document.createElement("div");
     meta.className = "timeline-item__meta";
 
     const left = document.createElement("span");
-    left.textContent = `${job.source} / ${job.arch} / ${job.sign}`;
+    left.textContent = `${job.source} / ${job.arch}`;
 
     const right = document.createElement("span");
     right.textContent = job.time;
 
     meta.append(left, right);
-    button.append(head, copy, meta);
+    button.append(head, meta);
     fragment.append(button);
   });
 
