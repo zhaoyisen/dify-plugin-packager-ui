@@ -20,7 +20,7 @@ from urllib.parse import quote
 from urllib.request import urlopen
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -758,15 +758,27 @@ app = FastAPI(title="Dify Plugin Packager UI")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+def static_asset_url(filename: str) -> str:
+    path = STATIC_DIR / filename
+    version = int(path.stat().st_mtime) if path.exists() else 0
+    return f"/static/{filename}?v={version}"
+
+
 @app.on_event("startup")
 def startup() -> None:
     ensure_directories()
     ensure_vendor_files()
 
 
-@app.get("/")
-async def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+@app.get("/", response_class=HTMLResponse)
+async def index() -> HTMLResponse:
+    template = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    html = (
+        template
+        .replace("__STYLES_CSS_URL__", static_asset_url("styles.css"))
+        .replace("__APP_JS_URL__", static_asset_url("app.js"))
+    )
+    return HTMLResponse(html)
 
 
 @app.get("/api/config")
