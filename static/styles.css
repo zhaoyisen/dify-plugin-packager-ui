@@ -38,8 +38,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  height: 100vh;
-  overflow: hidden;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: var(--text);
   background:
     radial-gradient(circle at 14% 16%, rgba(217, 142, 78, 0.12), transparent 16%),
@@ -114,15 +115,16 @@ label:has(input[type="file"]):hover {
   z-index: 1;
   display: grid;
   grid-template-columns: clamp(250px, 14vw, 288px) minmax(0, 1fr) clamp(292px, 16vw, 336px);
-  grid-template-rows: var(--top-height) minmax(0, 1fr) var(--bottom-height);
+  grid-template-rows: auto auto auto;
   grid-template-areas:
     "bridge bridge bridge"
     "rail composer stack"
     "rail activity activity";
   gap: var(--gap);
   width: 100%;
-  height: 100dvh;
+  min-height: 100dvh;
   padding: var(--shell-pad);
+  align-items: start;
 }
 
 .bridge-bar,
@@ -202,6 +204,7 @@ label:has(input[type="file"]):hover {
   gap: 14px;
   align-items: center;
   padding: clamp(14px, 1vw, 20px);
+  min-height: var(--top-height);
 }
 
 .bridge-bar__copy,
@@ -272,12 +275,11 @@ label:has(input[type="file"]):hover {
 
 .system-rail {
   grid-area: rail;
-  min-height: 0;
+  min-height: auto;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto auto auto;
   gap: 12px;
   padding: var(--panel-pad);
-  overflow: hidden;
 }
 
 .rail-heading h2,
@@ -309,9 +311,7 @@ label:has(input[type="file"]):hover {
 .rail-stack {
   display: grid;
   gap: 8px;
-  min-height: 0;
-  overflow: auto;
-  padding-right: 4px;
+  overflow: visible;
 }
 
 .rail-card {
@@ -362,12 +362,11 @@ label:has(input[type="file"]):hover {
 
 .mission-composer {
   grid-area: composer;
-  min-height: 0;
+  min-height: auto;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   gap: 12px;
   padding: var(--panel-pad);
-  overflow: hidden;
 }
 
 .module-header,
@@ -390,19 +389,15 @@ label:has(input[type="file"]):hover {
 }
 
 .composer-flow {
-  min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
   gap: 12px;
-  overflow: hidden;
 }
 
 .composer-block {
-  min-height: 0;
   padding: 12px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(16, 27, 34, 0.84), rgba(11, 19, 25, 0.96));
-  overflow: hidden;
 }
 
 .composer-block--source,
@@ -459,22 +454,19 @@ label:has(input[type="file"]):hover {
 }
 
 .source-surface {
-  min-height: 0;
-  height: 100%;
+  height: auto;
 }
 
 .composer-block--surface {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
 }
 
 .source-panel {
   display: none;
-  height: 100%;
+  height: auto;
   grid-template-columns: minmax(0, 1.12fr) minmax(240px, 0.88fr);
   gap: 12px;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .source-panel.is-active {
@@ -546,8 +538,6 @@ label:has(input[type="file"]):hover {
   padding: 14px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(15, 25, 31, 0.92), rgba(10, 16, 21, 0.98));
-  min-height: 0;
-  overflow: auto;
 }
 
 .surface-note strong,
@@ -705,12 +695,11 @@ label:has(input[type="file"]):hover {
 
 .execution-stack {
   grid-area: stack;
-  min-height: 0;
+  min-height: auto;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   gap: 12px;
   padding: var(--panel-pad);
-  overflow: hidden;
 }
 
 .module-header--stack {
@@ -718,11 +707,9 @@ label:has(input[type="file"]):hover {
 }
 
 .stack-grid {
-  min-height: 0;
   display: grid;
   gap: 8px;
-  overflow: auto;
-  padding-right: 4px;
+  overflow: visible;
 }
 
 .stack-card {
@@ -747,12 +734,11 @@ label:has(input[type="file"]):hover {
 
 .activity-strip {
   grid-area: activity;
-  min-height: 0;
+  min-height: var(--bottom-height);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   gap: 12px;
   padding: var(--panel-pad);
-  overflow: hidden;
 }
 
 .module-header--compact {
@@ -788,21 +774,18 @@ label:has(input[type="file"]):hover {
 }
 
 .activity-grid {
-  min-height: 0;
   display: grid;
   grid-template-columns: minmax(380px, 0.88fr) minmax(0, 1.12fr);
   gap: 12px;
-  overflow: hidden;
+  align-items: start;
 }
 
 .lane {
-  min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   padding: 12px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(14, 23, 29, 0.9), rgba(8, 13, 17, 0.98));
-  overflow: hidden;
 }
 
 .lane-header {
@@ -824,17 +807,9 @@ label:has(input[type="file"]):hover {
   gap: 6px;
 }
 
-.timeline-list,
-.console-output,
-.artifact-preview {
-  min-height: 0;
-  overflow: auto;
-}
-
 .timeline-list {
   display: grid;
   gap: 8px;
-  padding-right: 4px;
 }
 
 .timeline-item {
@@ -918,7 +893,7 @@ label:has(input[type="file"]):hover {
 }
 
 .console-frame {
-  min-height: 0;
+  min-height: 280px;
   position: relative;
   display: grid;
   border: 1px solid var(--line);
@@ -931,7 +906,7 @@ label:has(input[type="file"]):hover {
 
 .console-output {
   margin: 0;
-  height: 100%;
+  max-height: 360px;
   padding: 14px 16px 18px;
   color: #dfe9ef;
   font-family: "IBM Plex Mono", monospace;
@@ -939,13 +914,15 @@ label:has(input[type="file"]):hover {
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow: auto;
 }
 
 .artifact-preview {
-  height: 100%;
+  max-height: 360px;
   display: grid;
   gap: 10px;
   padding: 14px 16px 18px;
+  overflow: auto;
 }
 
 .artifact-preview[hidden] {
@@ -1036,7 +1013,8 @@ label:has(input[type="file"]):hover {
   body {
     height: auto;
     min-height: 100dvh;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .prototype-shell {
