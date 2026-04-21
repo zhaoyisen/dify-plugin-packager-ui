@@ -71,6 +71,44 @@ _local(){
   repackage ${PLUGIN_PACKAGE_PATH}
 }
 
+prepare_plugin_for_offline_package(){
+  local plugin_dir=$1
+  local difyignore_file="${plugin_dir}/.difyignore"
+
+  if [[ -f "${plugin_dir}/uv.lock" ]]; then
+    rm -f "${plugin_dir}/uv.lock"
+    echo "Removed uv.lock to avoid forcing online dependency resolution during Dify install."
+  fi
+
+  if [[ -f "${difyignore_file}" ]]; then
+    sed -i \
+      -e '/^wheels\/\?$/d' \
+      -e '/^wheels\/\*\*$/d' \
+      -e '/^\*\.whl$/d' \
+      -e '/^uv\.lock$/d' \
+      "${difyignore_file}"
+  fi
+}
+
+enable_offline_requirements(){
+  local requirements_file=$1
+
+  if [[ ! -f "${requirements_file}" ]]; then
+    return 0
+  fi
+
+  if grep -qxF -- '--no-index --find-links=./wheels/' "${requirements_file}"; then
+    return 0
+  fi
+
+  local temp_requirements="${requirements_file}.tmp"
+  {
+    printf '%s\n' '--no-index --find-links=./wheels/'
+    cat "${requirements_file}"
+  } > "${temp_requirements}"
+  mv "${temp_requirements}" "${requirements_file}"
+}
+
 download_with_fallback(){
   local package=$1
   local wheels_dir=$2
@@ -265,16 +303,16 @@ repackage(){
   echo "Repackaging ..."
   cd ${CURR_DIR}/${PACKAGE_NAME} || exit 1
   mkdir -p ./wheels
+  prepare_plugin_for_offline_package "${CURR_DIR}/${PACKAGE_NAME}"
 
   if [[ -f requirements.txt ]]; then
     process_requirements "requirements.txt" "./wheels"
-    sed -i '1i\--no-index --find-links=./wheels/' requirements.txt
+    enable_offline_requirements requirements.txt
   else
     echo "No requirements.txt found, skipping dependency download."
-  fi
-
-  if [ -f .difyignore ]; then
-    sed -i '/^wheels\//d' .difyignore
+    if [[ -f pyproject.toml ]]; then
+      echo "Warning: pyproject.toml detected without requirements.txt; Dify may still try to resolve dependencies online."
+    fi
   fi
 
   cd ${CURR_DIR} || exit 1

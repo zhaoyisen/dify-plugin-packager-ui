@@ -12,6 +12,7 @@ import stat
 import subprocess
 import threading
 import uuid
+import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -469,6 +470,64 @@ def find_signed_package(package_path: Path) -> Path | None:
     return packages[0] if packages else None
 
 
+def inspect_package_archive(package_path: Path) -> dict[str, Any]:
+    inspection: dict[str, Any] = {
+        "readable": False,
+        "manifest_present": False,
+        "requirements_present": False,
+        "uv_lock_present": False,
+        "wheel_count": 0,
+    }
+    if not package_path.is_file():
+        return inspection
+
+    try:
+        with zipfile.ZipFile(package_path) as archive:
+            names = archive.namelist()
+    except (OSError, zipfile.BadZipFile):
+        return inspection
+
+    normalized = [name.lstrip("./") for name in names]
+    inspection["readable"] = True
+    inspection["manifest_present"] = any(
+        name == "manifest.yaml" or name.endswith("/manifest.yaml")
+        for name in normalized
+    )
+    inspection["requirements_present"] = any(
+        name == "requirements.txt" or name.endswith("/requirements.txt")
+        for name in normalized
+    )
+    inspection["uv_lock_present"] = any(
+        name == "uv.lock" or name.endswith("/uv.lock")
+        for name in normalized
+    )
+    inspection["wheel_count"] = sum(
+        1
+        for name in normalized
+        if name.endswith(".whl") and (name.startswith("wheels/") or "/wheels/" in name)
+    )
+    return inspection
+
+
+def log_package_archive_inspection(job: JobRecord, package_path: Path) -> None:
+    inspection = inspect_package_archive(package_path)
+    if not inspection["readable"]:
+        job.log("[inspect] Unable to inspect the generated package archive")
+        return
+
+    job.log(
+        "[inspect] "
+        f"manifest.yaml={'yes' if inspection['manifest_present'] else 'no'}, "
+        f"requirements.txt={'yes' if inspection['requirements_present'] else 'no'}, "
+        f"uv.lock={'present' if inspection['uv_lock_present'] else 'absent'}, "
+        f"bundled wheels={inspection['wheel_count']}"
+    )
+    if inspection["requirements_present"] and inspection["wheel_count"] == 0:
+        job.log("[inspect] Warning: requirements.txt exists but no bundled wheels were found in the output package")
+    if inspection["uv_lock_present"]:
+        job.log("[inspect] Warning: uv.lock is still present in the output package and may force Dify to resolve dependencies online")
+
+
 def run_subprocess(
     job: JobRecord,
     command: list[str],
@@ -732,10 +791,12 @@ def execute_job(job: JobRecord) -> None:
 
     target_path = output_dir / package.name
     shutil.move(str(package), str(target_path))
+    log_package_archive_inspection(job, target_path)
     final_artifact = target_path
 
     if job.sign_output:
         final_artifact = sign_package(job, runner_dir, target_path, env)
+        log_package_archive_inspection(job, final_artifact)
 
     job.set_artifact(final_artifact)
     job.log(f"[done] Output package ready: {final_artifact.name}")
