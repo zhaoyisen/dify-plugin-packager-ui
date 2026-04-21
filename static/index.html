@@ -4,352 +4,473 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#081117" />
-    <title>Dify 插件离线打包台 | 操作舱工作台原型</title>
+    <title>Dify 插件离线打包台 | 打包工作台</title>
     <link rel="stylesheet" href="__STYLES_CSS_URL__" />
   </head>
   <body>
-    <div class="prototype-shell">
-      <header class="bridge-bar bevel-panel">
-        <div class="bridge-bar__copy">
-          <p class="eyebrow">操作舱工作台原型</p>
-          <h1>离线打包应该是一条清晰的任务航线。</h1>
-          <p>中央负责发单，右侧负责判断，下方承接时间线与日志。桌面端以 1920 × 1080 为主基线，必要时允许页面自然滚动。</p>
+    <div class="app-shell">
+      <header class="topbar bevel-panel">
+        <div class="topbar__copy">
+          <p class="eyebrow">Dify 插件离线打包台</p>
+          <h1>打包工作台</h1>
+          <p id="hostWarning" class="topbar__meta">
+            用现有服务直接发起打包任务、跟踪执行进度，并管理默认签名配置。
+          </p>
         </div>
 
-        <div class="bridge-bar__metrics" aria-label="环境摘要">
-          <article class="metric-chip">
-            <span class="metric-chip__label">运行宿主</span>
-            <strong>Linux / amd64</strong>
-          </article>
-          <article class="metric-chip">
-            <span class="metric-chip__label">签名态势</span>
-            <strong>托管密钥已预热</strong>
-          </article>
-          <article class="metric-chip">
-            <span class="metric-chip__label">产物槽位</span>
-            <strong>最近构建可回收</strong>
-          </article>
+        <div class="topbar__actions">
+          <nav class="primary-nav" aria-label="主导航">
+            <button type="button" class="nav-tab is-active" data-page="workspace" aria-pressed="true">
+              打包工作台
+            </button>
+            <button type="button" class="nav-tab" data-page="jobs" aria-pressed="false">
+              任务中心
+            </button>
+          </nav>
+
+          <button type="button" class="ghost-button" id="topRefreshButton">
+            刷新任务
+          </button>
         </div>
       </header>
 
-      <aside class="system-rail bevel-panel">
-        <div class="rail-heading">
-          <p class="eyebrow">系统纵列</p>
-          <h2>先回答现在能不能发任务，再谈怎么发。</h2>
-          <p>这里只保留会影响发单判断的门槛信息。</p>
-        </div>
+      <main class="page-stack">
+        <section class="page is-active" data-page-panel="workspace">
+          <div class="workspace-layout">
+            <section class="panel workspace-main">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">新建打包任务</p>
+                  <h2>先选来源，再确认架构和签名设置。</h2>
+                </div>
+                <p>
+                  页面只保留任务发起需要的信息。任务执行过程和历史记录集中放到任务中心查看。
+                </p>
+              </div>
 
-        <div class="rail-stack">
-          <article class="rail-card rail-card--accent">
-            <span class="rail-card__label">运行环境</span>
-            <strong>Linux 主机已进入打包态</strong>
-            <p>当前宿主为 amd64，可直接走标准通道。</p>
-          </article>
+              <div id="runtimeBanner" class="notice notice--warn" hidden></div>
 
-          <article class="rail-card">
-            <span class="rail-card__label">目标兼容</span>
-            <strong>amd64 与 arm64 都可选</strong>
-            <p>原生 amd64 直出，arm64 会切到跨架构链路。</p>
-          </article>
+              <form id="jobForm" class="job-form">
+                <section class="form-block">
+                  <div class="block-heading">
+                    <div>
+                      <span class="block-index">01</span>
+                      <h3>选择来源</h3>
+                    </div>
+                    <p id="sourceHelp">上传本地 `.difypkg` 文件后，直接进入离线重打包流程。</p>
+                  </div>
 
-          <article class="rail-card">
-            <span class="rail-card__label">镜像源</span>
-            <strong>内部镜像已锁定</strong>
-            <p>依赖优先走企业镜像，不把网络细节塞进主工作区。</p>
-          </article>
-        </div>
+                  <div class="segmented" id="sourceSwitch" aria-label="选择来源">
+                    <button type="button" class="segmented__item is-active" data-source="local" aria-pressed="true">
+                      本地上传
+                    </button>
+                    <button type="button" class="segmented__item" data-source="github" aria-pressed="false">
+                      GitHub Release
+                    </button>
+                    <button type="button" class="segmented__item" data-source="market" aria-pressed="false">
+                      Marketplace
+                    </button>
+                  </div>
+                </section>
 
-        <section class="signal-array" aria-label="系统信号">
-          <div class="signal-row">
-            <span>签名密钥</span>
-            <strong>稳定</strong>
-          </div>
-          <div class="signal-row">
-            <span>命令行工具</span>
-            <strong>支持签名</strong>
-          </div>
-          <div class="signal-row">
-            <span>OpenSSL</span>
-            <strong>可轮换</strong>
-          </div>
-          <div class="signal-row">
-            <span>最近构建</span>
-            <strong>2 分钟前</strong>
+                <section class="form-block">
+                  <div class="block-heading">
+                    <div>
+                      <span class="block-index">02</span>
+                      <h3>来源信息</h3>
+                    </div>
+                    <p>根据来源展示需要填写的字段，不再跳到其他页面。</p>
+                  </div>
+
+                  <div class="source-panels">
+                    <section class="source-panel is-active" data-source-panel="local">
+                      <label class="upload-card" for="packageFile">
+                        <input id="packageFile" type="file" accept=".difypkg" />
+                        <span class="upload-card__label">本地文件</span>
+                        <strong class="upload-card__title">选择要打包的 `.difypkg` 文件</strong>
+                        <span class="upload-card__note" id="packageFileName">
+                          还没有选择文件。
+                        </span>
+                      </label>
+
+                      <article class="info-card">
+                        <span class="info-card__label">适用场景</span>
+                        <strong>手里已经有原始插件包</strong>
+                        <p>适合二次打包、离线归档或换架构输出，不需要额外填写仓库信息。</p>
+                      </article>
+                    </section>
+
+                    <section class="source-panel" data-source-panel="github">
+                      <div class="field-grid">
+                        <label class="field">
+                          <span>仓库名</span>
+                          <input id="githubRepo" type="text" placeholder="owner/repository" />
+                        </label>
+                        <label class="field">
+                          <span>Release 标签</span>
+                          <input id="githubRelease" type="text" placeholder="v1.0.0" />
+                        </label>
+                        <label class="field field--wide">
+                          <span>资产文件名</span>
+                          <input id="githubAsset" type="text" placeholder="plugin-name.difypkg" />
+                        </label>
+                      </div>
+
+                      <article class="info-card">
+                        <span class="info-card__label">适用场景</span>
+                        <strong>插件包已经发布到 GitHub Release</strong>
+                        <p>系统会先拉取 Release 资产，再继续执行离线重打包和签名流程。</p>
+                      </article>
+                    </section>
+
+                    <section class="source-panel" data-source-panel="market">
+                      <div class="field-grid">
+                        <label class="field">
+                          <span>作者名</span>
+                          <input id="marketAuthor" type="text" placeholder="langgenius" />
+                        </label>
+                        <label class="field">
+                          <span>插件名</span>
+                          <input id="marketName" type="text" placeholder="agent" />
+                        </label>
+                        <label class="field field--wide">
+                          <span>版本号</span>
+                          <input id="marketVersion" type="text" placeholder="0.0.9" />
+                        </label>
+                      </div>
+
+                      <article class="info-card">
+                        <span class="info-card__label">适用场景</span>
+                        <strong>插件包来自 Dify Marketplace</strong>
+                        <p>系统会先下载 Marketplace 原始包，再输出离线包。</p>
+                      </article>
+                    </section>
+                  </div>
+                </section>
+
+                <section class="form-block">
+                  <div class="block-heading">
+                    <div>
+                      <span class="block-index">03</span>
+                      <h3>打包设置</h3>
+                    </div>
+                    <p>目标架构和签名策略都在这里确认。</p>
+                  </div>
+
+                  <div class="settings-grid">
+                    <div class="setting-card">
+                      <span class="setting-card__label">目标架构</span>
+                      <div class="segmented" id="archSwitch" aria-label="选择目标架构">
+                        <button type="button" class="segmented__item is-active" data-arch="amd64" aria-pressed="true">
+                          amd64
+                        </button>
+                        <button type="button" class="segmented__item" data-arch="arm64" aria-pressed="false">
+                          arm64
+                        </button>
+                      </div>
+                      <p id="archHelp" class="setting-card__help"></p>
+                    </div>
+
+                    <div class="setting-card">
+                      <span class="setting-card__label">签名设置</span>
+                      <label class="switch-row" for="signOutputToggle">
+                        <input id="signOutputToggle" type="checkbox" />
+                        <span class="switch-row__slider" aria-hidden="true"></span>
+                        <span>打包完成后自动签名</span>
+                      </label>
+                      <p id="signHint" class="setting-card__help"></p>
+
+                      <button
+                        type="button"
+                        class="text-button"
+                        id="advancedSigningToggle"
+                        aria-expanded="false"
+                      >
+                        高级签名设置
+                      </button>
+
+                      <div id="advancedSigningPanel" class="advanced-signing" hidden>
+                        <label class="file-row" for="signaturePrivateKey">
+                          <span>任务私钥</span>
+                          <input id="signaturePrivateKey" type="file" accept=".pem,.key,.txt" />
+                          <strong id="privateKeyName">未选择文件</strong>
+                          <p>上传后仅对本次任务生效，会覆盖默认私钥。</p>
+                        </label>
+
+                        <label class="file-row" for="signaturePublicKey">
+                          <span>验签公钥</span>
+                          <input id="signaturePublicKey" type="file" accept=".pem,.pub,.txt" />
+                          <strong id="publicKeyName">未选择文件</strong>
+                          <p>可选。上传后用于验签，不上传则使用服务端已有公钥。</p>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="form-block form-block--summary">
+                  <div class="block-heading">
+                    <div>
+                      <span class="block-index">04</span>
+                      <h3>确认并提交</h3>
+                    </div>
+                    <p>提交后会自动切到任务中心，并开始跟踪新任务。</p>
+                  </div>
+
+                  <article class="summary-card">
+                    <span class="summary-card__label">本次任务</span>
+                    <div class="summary-card__chips">
+                      <span id="summarySource" class="summary-chip">本地上传</span>
+                      <span id="summaryArch" class="summary-chip">amd64</span>
+                      <span id="summarySign" class="summary-chip">不签名</span>
+                    </div>
+                    <p id="summaryText">
+                      上传本地插件包，目标架构为 amd64，打包完成后不执行签名。
+                    </p>
+                  </article>
+
+                  <div id="formNotice" class="notice" hidden></div>
+
+                  <div class="submit-row">
+                    <p id="submitTip">准备好后即可提交任务。</p>
+                    <button type="submit" class="primary-button" id="submitButton">
+                      <span id="submitButtonLabel">提交打包任务</span>
+                      <span id="submitButtonMeta">创建任务后会自动跳转到任务中心。</span>
+                    </button>
+                  </div>
+                </section>
+              </form>
+            </section>
+
+            <aside class="panel workspace-side">
+              <div class="section-heading section-heading--side">
+                <div>
+                  <p class="eyebrow">运行状态</p>
+                  <h2>先确认服务状态，再发起任务。</h2>
+                </div>
+                <p>这里展示运行环境、签名能力和最近任务摘要。</p>
+              </div>
+
+              <div class="status-stack">
+                <article class="status-card status-card--accent">
+                  <span class="status-card__label">当前环境</span>
+                  <strong id="hostValue">读取中</strong>
+                  <p id="hostNote">正在检查服务运行环境。</p>
+                </article>
+
+                <article class="status-card">
+                  <span class="status-card__label">架构支持</span>
+                  <strong id="supportValue">读取中</strong>
+                  <p id="supportNote">正在读取支持的目标架构。</p>
+                </article>
+
+                <article class="status-card">
+                  <span class="status-card__label">镜像与下载地址</span>
+                  <strong id="mirrorValue">读取中</strong>
+                  <p id="mirrorNote">正在读取服务配置。</p>
+                </article>
+
+                <article class="status-card">
+                  <span class="status-card__label">默认签名</span>
+                  <strong id="signingValue">读取中</strong>
+                  <p id="signingNote">正在检查签名运行状态。</p>
+                  <button type="button" class="ghost-button ghost-button--small" id="openSigningButton">
+                    打开签名管理
+                  </button>
+                </article>
+
+                <article class="status-card">
+                  <span class="status-card__label">最近任务</span>
+                  <strong id="recentJobValue">还没有任务记录</strong>
+                  <p id="recentJobNote">任务提交后会在这里显示最新状态。</p>
+                  <button type="button" class="ghost-button ghost-button--small" id="openJobsButton">
+                    前往任务中心
+                  </button>
+                </article>
+              </div>
+            </aside>
           </div>
         </section>
 
-        <div class="rail-footer">
-          <p class="rail-footer__label">操作原则</p>
-          <p>治理信息退到边缘，中央只做发单。</p>
-        </div>
-      </aside>
+        <section class="page" data-page-panel="jobs">
+          <div class="jobs-layout">
+            <aside class="panel jobs-list-panel">
+              <div class="section-heading section-heading--compact">
+                <div>
+                  <p class="eyebrow">任务中心</p>
+                  <h2>最近任务</h2>
+                </div>
+                <div class="inline-actions">
+                  <span id="jobsCount" class="chip">0 条任务</span>
+                  <button type="button" class="ghost-button ghost-button--small" id="refreshJobsButton">
+                    刷新
+                  </button>
+                </div>
+              </div>
 
-      <main class="mission-composer bevel-panel">
-        <div class="module-header">
-          <div>
-            <p class="eyebrow">任务编排区</p>
-            <h2>先定来源，再定目标，最后一键送入离线通道。</h2>
+              <p class="jobs-list-panel__hint">
+                只保留最近 20 条任务。服务重启后，列表会重新开始累计。
+              </p>
+
+              <div id="jobsList" class="job-list" aria-label="最近任务列表"></div>
+            </aside>
+
+            <section class="panel job-detail-panel">
+              <div id="jobDetailEmpty" class="empty-state">
+                <strong>还没有任务</strong>
+                <p>提交第一个打包任务后，这里会显示任务详情、日志和产物下载入口。</p>
+              </div>
+
+              <div id="jobDetail" hidden>
+                <div class="detail-header">
+                  <div>
+                    <p class="eyebrow">任务详情</p>
+                    <h2 id="detailJobId">-</h2>
+                  </div>
+                  <span id="detailStatus" class="status-pill">-</span>
+                </div>
+
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <span>来源</span>
+                    <strong id="detailSource">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>来源摘要</span>
+                    <strong id="detailSummary">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>目标架构</span>
+                    <strong id="detailArch">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>提交时间</span>
+                    <strong id="detailCreated">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>最近更新</span>
+                    <strong id="detailUpdated">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>自动签名</span>
+                    <strong id="detailSign">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>私钥来源</span>
+                    <strong id="detailSignatureSource">-</strong>
+                  </div>
+                  <div class="detail-item">
+                    <span>验签公钥来源</span>
+                    <strong id="detailVerificationSource">-</strong>
+                  </div>
+                </div>
+
+                <div id="detailError" class="notice notice--error" hidden></div>
+
+                <div class="detail-actions">
+                  <div class="detail-actions__summary">
+                    <span>产物</span>
+                    <strong id="detailArtifact">任务尚未完成</strong>
+                  </div>
+
+                  <a
+                    id="downloadLink"
+                    class="primary-link"
+                    href="#"
+                    hidden
+                    download
+                  >
+                    下载产物
+                  </a>
+                </div>
+
+                <section class="log-panel">
+                  <div class="log-panel__header">
+                    <div>
+                      <span class="eyebrow">日志输出</span>
+                      <h3>执行日志</h3>
+                    </div>
+                    <p>运行中的任务会自动刷新日志和状态。</p>
+                  </div>
+
+                  <pre id="jobLogs" class="log-output">还没有日志。</pre>
+                </section>
+              </div>
+            </section>
           </div>
-          <p>主工作区只处理任务发起，不承载历史、治理和监控。</p>
-        </div>
-
-        <form id="prototypeForm" class="composer-flow">
-          <input type="hidden" id="sourceInput" value="local" />
-          <input type="hidden" id="archInput" value="amd64" />
-          <input type="hidden" id="signInput" value="managed" />
-
-          <section class="composer-block composer-block--source">
-            <div class="block-header">
-              <div>
-                <span class="block-index">01</span>
-                <h3>来源选择</h3>
-              </div>
-              <p id="sourceCaption">将现成的 `.difypkg` 直接送入离线重打包通道。</p>
-            </div>
-
-            <div class="source-switch" id="sourceSwitch" aria-label="来源切换">
-              <button type="button" class="source-toggle is-active" data-source="local" aria-pressed="true">本地包</button>
-              <button type="button" class="source-toggle" data-source="github" aria-pressed="false">GitHub 发布包</button>
-              <button type="button" class="source-toggle" data-source="market" aria-pressed="false">插件市场</button>
-            </div>
-          </section>
-
-          <section class="composer-block composer-block--surface">
-            <div class="block-header">
-              <div>
-                <span class="block-index">02</span>
-                <h3>来源参数面</h3>
-              </div>
-              <p>来源切换不跳页，只替换当前参数面。</p>
-            </div>
-
-            <div class="source-surface">
-              <section class="source-panel is-active" data-source-panel="local">
-                <label class="upload-bay" for="packageFile">
-                  <input id="packageFile" type="file" accept=".difypkg" />
-                  <span class="upload-bay__eyebrow">本地包入口</span>
-                  <strong class="upload-bay__title">拖入插件包，或者直接点按选取文件。</strong>
-                  <span class="upload-bay__note" id="packageFileName">尚未选择文件，原型阶段只演示入口形态。</span>
-                </label>
-
-                <article class="surface-note">
-                  <span class="surface-note__label">包体预判</span>
-                  <strong>适合已经拿到 `.difypkg` 的直推场景</strong>
-                  <p>直接把现成包送进离线通道，不再绕去别的页面找上传入口。</p>
-                  <ul class="surface-list">
-                    <li>无需额外仓库信息</li>
-                    <li>适合二次离线封装</li>
-                    <li>可切换为托管签名输出</li>
-                  </ul>
-                </article>
-              </section>
-
-              <section class="source-panel" data-source-panel="github">
-                <div class="field-grid">
-                  <label class="field">
-                    <span>仓库地址</span>
-                    <input type="text" placeholder="owner/repository" />
-                  </label>
-                  <label class="field">
-                    <span>版本标签</span>
-                    <input type="text" placeholder="v0.0.1" />
-                  </label>
-                  <label class="field field--wide">
-                    <span>发布资产名</span>
-                    <input type="text" placeholder="plugin-name.difypkg" />
-                  </label>
-                </div>
-
-                <article class="surface-note">
-                  <span class="surface-note__label">抓取逻辑</span>
-                  <strong>远程拉取后再进入离线封装</strong>
-                  <p>把 GitHub 发布包直接折进离线流程，不再拆出独立配置页。</p>
-                  <ul class="surface-list">
-                    <li>输入最少的仓库三元组</li>
-                    <li>适合外部插件版本追踪</li>
-                    <li>与 arm64 目标可以同时预演</li>
-                  </ul>
-                </article>
-              </section>
-
-              <section class="source-panel" data-source-panel="market">
-                <div class="field-grid">
-                  <label class="field">
-                    <span>作者标识</span>
-                    <input type="text" placeholder="langgenius" />
-                  </label>
-                  <label class="field">
-                    <span>插件名称</span>
-                    <input type="text" placeholder="agent" />
-                  </label>
-                  <label class="field field--wide">
-                    <span>版本号</span>
-                    <input type="text" placeholder="0.0.9" />
-                  </label>
-                </div>
-
-                <article class="surface-note">
-                  <span class="surface-note__label">市场导入</span>
-                  <strong>先抓取原包，再执行离线重打包</strong>
-                  <p>市场来源保留为一等入口，但仍与其他来源共用同一工作面。</p>
-                  <ul class="surface-list">
-                    <li>适合标准市场插件复刻</li>
-                    <li>更利于统一产物命名</li>
-                    <li>可结合托管签名直接产出</li>
-                  </ul>
-                </article>
-              </section>
-            </div>
-          </section>
-
-          <section class="composer-block composer-block--dispatch">
-            <div class="block-header">
-              <div>
-                <span class="block-index">03</span>
-                <h3>提交总控</h3>
-              </div>
-              <p>目标、签名和摘要全部收束到这里。</p>
-            </div>
-
-            <div class="dispatch-controls">
-              <div class="cluster">
-                <span class="cluster__label">目标架构</span>
-                <div class="segment-line" id="archSwitch" aria-label="目标架构">
-                  <button type="button" class="segment-line__item is-active" data-arch="amd64" aria-pressed="true">amd64</button>
-                  <button type="button" class="segment-line__item" data-arch="arm64" aria-pressed="false">arm64</button>
-                </div>
-              </div>
-
-              <div class="cluster">
-                <span class="cluster__label">输出策略</span>
-                <div class="segment-line" id="signSwitch" aria-label="签名策略">
-                  <button type="button" class="segment-line__item is-active" data-sign="managed" aria-pressed="true">托管签名</button>
-                  <button type="button" class="segment-line__item" data-sign="unsigned" aria-pressed="false">保持未签名</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="dispatch-grid">
-              <article class="dispatch-summary">
-                <span class="dispatch-summary__label">任务摘要</span>
-                <div class="summary-badges">
-                  <span class="summary-badge" id="summarySource">本地包</span>
-                  <span class="summary-badge" id="summaryArch">amd64</span>
-                  <span class="summary-badge" id="summarySign">托管签名</span>
-                </div>
-                <p id="summaryNarrative">
-                  当前将以本地包为来源，走标准 amd64 通道，并在产物出口直接套上托管签名。
-                </p>
-              </article>
-
-              <button type="button" class="launch-button" id="submitButton">
-                <span class="launch-button__title">发起离线工单</span>
-                <span class="launch-button__meta">原型阶段只演示发起前反馈，不会触发真实提交</span>
-              </button>
-            </div>
-          </section>
-        </form>
+        </section>
       </main>
 
-      <aside class="execution-stack bevel-panel">
-        <div class="module-header module-header--stack">
+      <div id="signingBackdrop" class="drawer-backdrop" hidden></div>
+
+      <aside id="signingDrawer" class="signing-drawer" aria-hidden="true">
+        <div class="signing-drawer__header">
           <div>
-            <p class="eyebrow">执行栈</p>
-            <h2>右侧只负责系统判断，不接表单输入。</h2>
+            <p class="eyebrow">签名管理</p>
+            <h2>查看默认签名能力，生成或下载托管密钥。</h2>
           </div>
-          <p>这里显示系统判断，不再继续要用户填东西。</p>
+          <button type="button" class="icon-button" id="closeSigningDrawer" aria-label="关闭签名管理">
+            ×
+          </button>
         </div>
 
-        <div class="stack-grid">
-          <article class="stack-card">
-            <span class="stack-card__label">当前执行通道</span>
-            <strong id="routeHeadline">标准 amd64 通道</strong>
-            <p id="routeBody">宿主为 Linux / amd64，当前选择会直接进入本机重打包链路。</p>
+        <div id="signingNotice" class="notice" hidden></div>
+
+        <div class="drawer-stack">
+          <article class="status-card status-card--drawer">
+            <span class="status-card__label">默认签名能力</span>
+            <strong id="drawerDefaultSignValue">读取中</strong>
+            <p id="drawerDefaultSignNote">正在读取签名配置。</p>
           </article>
 
-          <article class="stack-card">
-            <span class="stack-card__label">目标兼容判断</span>
-            <strong id="compatHeadline">目标可立即发起</strong>
-            <p id="compatBody">当前目标与宿主相容，界面不需要额外提示阻塞条件。</p>
+          <article class="status-card status-card--drawer">
+            <span class="status-card__label">当前生效密钥</span>
+            <strong id="drawerActivePrivateValue">私钥：-</strong>
+            <p id="drawerActivePublicValue">公钥：-</p>
           </article>
 
-          <article class="stack-card">
-            <span class="stack-card__label">签名模式</span>
-            <strong id="signHeadline">托管签名已接管</strong>
-            <p id="signBody">管理员已完成密钥预热，普通用户无需在主流程里再上传一次性私钥。</p>
+          <article class="status-card status-card--drawer">
+            <span class="status-card__label">托管密钥</span>
+            <strong id="drawerManagedValue">读取中</strong>
+            <p id="drawerManagedNote">正在检查托管密钥状态。</p>
+            <p id="drawerFingerprint" class="status-card__meta" hidden></p>
+
+            <div class="drawer-actions">
+              <button type="button" class="ghost-button ghost-button--small" id="generateManagedButton">
+                生成托管密钥
+              </button>
+              <a
+                id="downloadManagedPrivate"
+                class="ghost-link"
+                href="#"
+                hidden
+                download
+              >
+                下载私钥
+              </a>
+              <a
+                id="downloadManagedPublic"
+                class="ghost-link"
+                href="#"
+                hidden
+                download
+              >
+                下载公钥
+              </a>
+            </div>
           </article>
 
-          <article class="stack-card stack-card--artifact">
-            <span class="stack-card__label">最近成功构建</span>
-            <strong id="artifactHeadline">可下载离线产物已存在</strong>
-            <p id="artifactBody">market/agent@0.0.9 · offline-agent-arm64.difypkg</p>
-            <button type="button" class="artifact-link" id="artifactAction">查看产物出口示意</button>
-          </article>
-
-          <article class="stack-card">
-            <span class="stack-card__label">治理入口</span>
-            <strong>签名治理被折叠到边缘区</strong>
-            <p>密钥、信任链和工具健康度退到右侧，不再侵占主路径。</p>
+          <article class="status-card status-card--drawer">
+            <span class="status-card__label">运行依赖</span>
+            <strong id="drawerCliValue">签名工具：-</strong>
+            <p id="drawerCliNote">-</p>
+            <strong id="drawerOpenSslValue">OpenSSL：-</strong>
+            <p id="drawerOpenSslNote">-</p>
           </article>
         </div>
       </aside>
 
-      <section class="activity-strip bevel-panel">
-        <div class="module-header module-header--compact">
-          <div>
-            <p class="eyebrow">活动带</p>
-            <h2>最近任务和日志留在下方分区，需要时自然展开。</h2>
-          </div>
-
-          <div class="activity-meta">
-            <span class="activity-meta__dot" id="activityStatusDot"></span>
-            <div>
-              <strong id="activityStatusLabel">当前聚焦：release-probe-9021</strong>
-              <p id="activityStatusMeta">GitHub 发布包 / arm64 / 托管签名 / 执行中</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="activity-grid">
-          <section class="lane timeline-lane">
-            <div class="lane-header">
-              <div>
-                <span class="lane-header__label">最近任务</span>
-                <h3>时间线</h3>
-              </div>
-              <p>用 4 条样例记录验证底部活动带的层级。</p>
-            </div>
-            <div class="timeline-list" id="activityJobs" aria-label="最近任务时间线"></div>
-          </section>
-
-          <section class="lane log-lane">
-            <div class="lane-header lane-header--tabs">
-              <div>
-                <span class="lane-header__label">预览视窗</span>
-                <h3>日志与产物</h3>
-              </div>
-              <div class="console-tabs" aria-label="预览切换">
-                <button type="button" class="console-tab is-active" data-console-view="logs" aria-pressed="true">执行日志</button>
-                <button type="button" class="console-tab" data-console-view="artifact" aria-pressed="false">产物摘要</button>
-              </div>
-            </div>
-
-            <div class="console-frame">
-              <pre id="activityLogs" class="console-output"></pre>
-              <div id="artifactPreview" class="artifact-preview" hidden>
-                <span class="artifact-preview__label">产物摘要</span>
-                <strong id="artifactPreviewTitle">offline-agent-arm64.difypkg</strong>
-                <p id="artifactPreviewBody">最近成功构建来自插件市场，已覆盖托管签名，可直接归档到离线交付链路。</p>
-                <div class="artifact-preview__chips">
-                  <span>产物状态：可回收</span>
-                  <span>签名状态：已覆盖</span>
-                  <span>交付节奏：最近 2 分钟</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </section>
+      <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <script src="__APP_JS_URL__" defer></script>
