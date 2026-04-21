@@ -1,369 +1,596 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#09111a" />
-    <title>Dify Plugin Packager | Offline Console</title>
+    <meta name="theme-color" content="#081319" />
+    <title>Dify 插件离线打包台 | 系统工作台</title>
     <link rel="stylesheet" href="__STYLES_CSS_URL__" />
   </head>
   <body>
     <div class="app-shell">
-      <header class="hero">
-        <div class="hero__rail">
-          <div class="hero__eyebrow">Dify Plugin Packager / Offline Repackaging Console</div>
-          <div class="hero__signals">
-            <span class="signal-pill" id="hostArchChip">Runtime --</span>
-            <span class="signal-pill signal-pill--soft" id="hostOsChip">Host --</span>
-            <span class="signal-pill signal-pill--soft" id="mirrorChip">Mirror --</span>
-          </div>
+      <aside class="sidebar">
+        <div class="sidebar__brand">
+          <div class="sidebar__eyebrow">Dify 插件离线打包台</div>
+          <h1>系统工作台</h1>
+          <p>把离线打包、运行监控和签名治理拆成独立工作台，而不是堆在一张长页面里。</p>
         </div>
 
-        <div class="hero__main">
-          <div class="hero__copy">
-            <p class="section-tag">Operator Deck</p>
-            <h1>Turn plugin offline repackaging into one clean control deck.</h1>
-            <p class="hero__lead">
-              Built for Linux and Kubernetes deployment flows. Keep the existing
-              <code>dify-plugin-repackaging-plus</code>
-              script chain, but tighten ingress, runtime strategy, live logs, and artifact delivery into one harder, cleaner workflow.
-            </p>
+        <nav class="sidebar__nav" aria-label="主导航">
+          <button type="button" class="nav-item is-active" data-page-target="overview">
+            <span class="nav-item__index">00</span>
+            <span class="nav-item__copy">
+              <strong>总览</strong>
+              <small>入口、状态与节奏</small>
+            </span>
+          </button>
+          <button type="button" class="nav-item" data-page-target="build">
+            <span class="nav-item__index">01</span>
+            <span class="nav-item__copy">
+              <strong>创建任务</strong>
+              <small>提交新的离线打包工单</small>
+            </span>
+          </button>
+          <button type="button" class="nav-item" data-page-target="monitor">
+            <span class="nav-item__index">02</span>
+            <span class="nav-item__copy">
+              <strong>任务监控</strong>
+              <small>查看状态、日志和产物</small>
+            </span>
+          </button>
+          <button type="button" class="nav-item" data-page-target="signing">
+            <span class="nav-item__index">03</span>
+            <span class="nav-item__copy">
+              <strong>签名中心</strong>
+              <small>托管密钥与信任链</small>
+            </span>
+          </button>
+        </nav>
 
-            <div class="hero__markers">
-              <div class="hero-marker">
-                <span class="hero-marker__label">Ingress</span>
-                <strong>Three unified entry paths</strong>
-              </div>
-              <div class="hero-marker">
-                <span class="hero-marker__label">Runtime</span>
-                <strong>amd64 / arm64 routing</strong>
-              </div>
-              <div class="hero-marker">
-                <span class="hero-marker__label">Delivery</span>
-                <strong>Logs and artifacts in one view</strong>
-              </div>
-            </div>
+        <section class="sidebar__runtime">
+          <article class="sidebar-card">
+            <span class="sidebar-card__label">运行态</span>
+            <strong id="hostArchChip">运行架构 --</strong>
+            <p id="compatibilityHint">正在检测运行环境...</p>
+          </article>
+
+          <div class="sidebar-signals">
+            <span class="signal-chip" id="hostOsChip">主机 --</span>
+            <span class="signal-chip signal-chip--soft" id="mirrorChip">镜像 --</span>
+          </div>
+        </section>
+
+        <section class="sidebar__footer">
+          <div class="sidebar-note">
+            <span class="sidebar-note__label">建议流转</span>
+            <p>管理员先在签名中心生成托管密钥，再到创建任务页开放给普通用户提交离线工单。</p>
+          </div>
+        </section>
+      </aside>
+
+      <div class="shell-main">
+        <header class="topbar">
+          <div class="topbar__copy">
+            <p class="topbar__eyebrow" id="pageEyebrow">系统总览</p>
+            <h2 id="pageTitle">系统总览</h2>
+            <p id="pageDescription">将功能入口、任务监控和签名治理拆到不同页面，保证桌面端一屏完成核心操作。</p>
           </div>
 
-          <aside class="hero__brief">
-            <article class="brief-card brief-card--highlight">
-              <span class="brief-card__label">Compatibility</span>
-              <strong id="compatibilityHint">Inspecting runtime</strong>
-              <p>Host OS and target architecture are checked before the job is dispatched.</p>
-            </article>
-
-            <article class="brief-card">
-              <span class="brief-card__label">Execution Model</span>
-              <strong>Single submit, single lane, continuous feedback</strong>
-              <p>Source selection, script execution, and telemetry now live in one work surface instead of several small cards.</p>
-            </article>
-
-            <article class="brief-card">
-              <span class="brief-card__label">Output Channel</span>
-              <strong>Live logs + direct download</strong>
-              <p>The finished offline build is exposed immediately, while the recent jobs rail keeps the latest 20 runs visible.</p>
-            </article>
-          </aside>
-        </div>
-      </header>
-
-      <main class="workspace">
-        <section class="panel panel--command">
-          <div class="panel__heading">
-            <div>
-              <div class="panel__eyebrow">Command Deck</div>
-              <h2>Job Console</h2>
-            </div>
-            <p>Choose the source and target architecture, then send one repackaging job into the execution lane. Only the controls that change the outcome stay on screen.</p>
+          <div class="topbar__actions">
+            <button type="button" class="topbar-action" data-page-target="build">创建任务</button>
+            <button type="button" class="topbar-action" data-page-target="monitor">查看监控</button>
+            <button type="button" class="topbar-action" data-page-target="signing">签名中心</button>
           </div>
+        </header>
 
-          <form id="jobForm" class="job-form">
-            <div class="control-row">
-              <div class="field-group">
-                <label class="field-label">Source Input</label>
-                <div class="segment-control" id="sourceSwitch">
-                  <button type="button" class="segment-control__item is-active" data-source="local" aria-pressed="true">Local Upload</button>
-                  <button type="button" class="segment-control__item" data-source="github" aria-pressed="false">GitHub Release</button>
-                  <button type="button" class="segment-control__item" data-source="market" aria-pressed="false">Marketplace</button>
-                </div>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Target Architecture</label>
-                <div class="segment-control" id="archSwitch">
-                  <button type="button" class="segment-control__item is-active" data-arch="amd64" aria-pressed="true">amd64</button>
-                  <button type="button" class="segment-control__item" data-arch="arm64" aria-pressed="false">arm64</button>
-                </div>
-              </div>
-            </div>
-
-            <input type="hidden" name="source" id="sourceInput" value="local" />
-            <input type="hidden" name="target_arch" id="archInput" value="amd64" />
-
-            <div class="dispatch-grid">
-              <article class="dispatch-card">
-                <span class="dispatch-card__label">Execution Rule</span>
-                <p class="strategy-card" id="strategyCard">Reading runtime strategy...</p>
-              </article>
-
-              <article class="dispatch-card dispatch-card--pipeline">
-                <span class="dispatch-card__label">Pipeline</span>
-                <div class="pipeline-track">
-                  <span>INGEST</span>
-                  <i></i>
-                  <span>REPACKAGE</span>
-                  <i></i>
-                  <span>DELIVER</span>
-                </div>
-              </article>
-            </div>
-
-            <div class="workbench">
-              <aside class="source-guide">
-                <button type="button" class="source-guide__item is-active" data-guide="local">
-                  <span class="source-guide__index">01</span>
-                  <div>
-                    <strong>Local Upload</strong>
-                    <p>Use an existing .difypkg file and send it straight into the repackaging lane.</p>
-                  </div>
-                </button>
-
-                <button type="button" class="source-guide__item" data-guide="github">
-                  <span class="source-guide__index">02</span>
-                  <div>
-                    <strong>GitHub Release</strong>
-                    <p>Point at a repository, release tag, and asset name, then fetch the package remotely.</p>
-                  </div>
-                </button>
-
-                <button type="button" class="source-guide__item" data-guide="market">
-                  <span class="source-guide__index">03</span>
-                  <div>
-                    <strong>Marketplace</strong>
-                    <p>Pull the original package from the marketplace first, then run the offline rebuild.</p>
-                  </div>
-                </button>
-              </aside>
-
-              <div class="source-stage">
-                <div class="source-block is-active" data-block="local">
-                  <div class="field-group">
-                    <label class="field-label" for="packageFile">Upload .difypkg</label>
-                    <label class="upload-dropzone" for="packageFile">
-                      <input id="packageFile" name="package_file" type="file" accept=".difypkg" />
-                      <span class="upload-dropzone__eyebrow">Drop Zone</span>
-                      <span class="upload-dropzone__title">Drop a package here or click to browse</span>
-                      <span class="upload-dropzone__hint" id="fileHint">Only used in local upload mode</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="source-block" data-block="github">
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label class="field-label" for="githubRepo">GitHub Repository</label>
-                      <input id="githubRepo" name="github_repo" class="text-input" placeholder="owner/repository" />
-                    </div>
-                    <div class="field-group">
-                      <label class="field-label" for="githubRelease">Release Tag</label>
-                      <input id="githubRelease" name="github_release" class="text-input" placeholder="v0.0.1" />
-                    </div>
-                  </div>
-
-                  <div class="field-group">
-                    <label class="field-label" for="githubAsset">Asset Filename</label>
-                    <input id="githubAsset" name="github_asset" class="text-input" placeholder="plugin-name.difypkg" />
-                  </div>
-                </div>
-
-                <div class="source-block" data-block="market">
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label class="field-label" for="marketAuthor">Author</label>
-                      <input id="marketAuthor" name="market_author" class="text-input" placeholder="langgenius" />
-                    </div>
-                    <div class="field-group">
-                      <label class="field-label" for="marketName">Plugin Name</label>
-                      <input id="marketName" name="market_name" class="text-input" placeholder="agent" />
-                    </div>
-                  </div>
-
-                  <div class="field-group">
-                    <label class="field-label" for="marketVersion">Version</label>
-                    <input id="marketVersion" name="market_version" class="text-input" placeholder="0.0.9" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <section class="signature-stage">
-              <div class="signature-stage__header">
-                <div>
-                  <div class="panel__eyebrow">Signature Chain</div>
-                  <h3>Signature</h3>
-                </div>
-                <p>
-                  If the target Dify instance enables plugin signature verification,
-                  the rebuilt package must be signed and the matching public key must
-                  already be trusted by its <code>plugin_daemon</code>.
-                </p>
-              </div>
-
-              <input type="hidden" name="sign_output" id="signOutputInput" value="false" />
-
-              <div class="dispatch-grid signature-grid">
-                <article class="dispatch-card">
-                  <span class="dispatch-card__label">Output Mode</span>
-                  <div class="segment-control" id="signSwitch">
-                    <button type="button" class="segment-control__item" data-sign="true" aria-pressed="false">Sign Output</button>
-                    <button type="button" class="segment-control__item is-active" data-sign="false" aria-pressed="true">Leave Unsigned</button>
-                  </div>
-                  <p class="strategy-card" id="signatureModeHint">
-                    Unsigned output is still allowed here, but installation will fail on Dify instances with signature verification enabled.
+        <main class="page-stage">
+          <section class="page page--overview is-active" data-page="overview" aria-labelledby="pageTitle">
+            <div class="page-grid overview-grid">
+              <section class="panel overview-hero">
+                <div class="overview-hero__copy">
+                  <p class="panel__eyebrow">操作总览</p>
+                  <h3>把离线插件打包台做成真正的系统界面，而不是信息堆场。</h3>
+                  <p>
+                    左侧保留系统导航，右侧按任务流拆成独立页面。总览负责入口和态势，创建任务只保留提交工单所需的信息，监控页单独承接日志和产物，签名中心留给管理员做密钥治理。
                   </p>
-                </article>
+                </div>
 
-                <article class="dispatch-card">
-                  <span class="dispatch-card__label">Server Key Status</span>
-                  <p class="strategy-card" id="signingConfigHint">Inspecting signing configuration...</p>
-                </article>
-              </div>
+                <div class="overview-hero__spotlight">
+                  <article class="focus-card">
+                    <span class="focus-card__label">当前工单</span>
+                    <strong id="overviewCurrentJobId">暂无工单</strong>
+                    <div class="status-pill status-pill--idle" id="overviewCurrentJobStatus">空闲</div>
+                    <p id="overviewCurrentJobMeta">提交第一个任务后，这里会显示最新状态和更新时间。</p>
+                  </article>
 
-              <article class="dispatch-card key-cockpit">
-                <div class="key-cockpit__header">
+                  <article class="focus-card focus-card--accent">
+                    <span class="focus-card__label">最近产物</span>
+                    <strong id="overviewArtifactName">暂无可下载产物</strong>
+                    <a class="artifact-action is-disabled" id="overviewArtifactLink" href="#" aria-disabled="true">下载最近产物</a>
+                  </article>
+                </div>
+
+                <div class="action-tiles">
+                  <button type="button" class="action-tile" data-page-target="build">
+                    <span class="action-tile__index">01</span>
+                    <strong>创建新的离线任务</strong>
+                    <p>选择来源、目标架构和签名策略，专门在一页内完成提交。</p>
+                  </button>
+                  <button type="button" class="action-tile" data-page-target="monitor">
+                    <span class="action-tile__index">02</span>
+                    <strong>进入任务监控台</strong>
+                    <p>只看状态、日志与产物，把执行反馈从表单区域中剥离出去。</p>
+                  </button>
+                  <button type="button" class="action-tile" data-page-target="signing">
+                    <span class="action-tile__index">03</span>
+                    <strong>管理托管签名</strong>
+                    <p>管理员在独立页面生成托管密钥，减少普通用户的签名负担。</p>
+                  </button>
+                </div>
+              </section>
+
+              <section class="panel overview-stats">
+                <div class="panel__header">
                   <div>
-                    <span class="dispatch-card__label">Managed Key Pair</span>
-                    <strong id="managedKeyHeadline">No managed key pair yet</strong>
+                    <p class="panel__eyebrow">系统信号</p>
+                    <h3>运行态摘要</h3>
                   </div>
-                  <div class="key-cockpit__chips">
-                    <span class="signal-pill signal-pill--soft" id="managedKeySourceChip">Source --</span>
-                    <span class="signal-pill signal-pill--soft" id="managedKeyCliChip">CLI --</span>
-                    <span class="signal-pill signal-pill--soft" id="managedKeyOpenSslChip">OpenSSL --</span>
+                  <p>不展示冗长说明，只保留影响提交与部署判断的关键信号。</p>
+                </div>
+
+                <div class="stat-grid">
+                  <article class="stat-card">
+                    <span class="stat-card__label">运行环境</span>
+                    <strong id="overviewRuntimeValue">--</strong>
+                    <p id="overviewRuntimeMeta">等待配置加载</p>
+                  </article>
+                  <article class="stat-card">
+                    <span class="stat-card__label">签名能力</span>
+                    <strong id="overviewSigningValue">--</strong>
+                    <p id="overviewSigningMeta">等待配置加载</p>
+                  </article>
+                  <article class="stat-card">
+                    <span class="stat-card__label">执行通道</span>
+                    <strong id="overviewLaneValue">--</strong>
+                    <p id="overviewLaneMeta">等待配置加载</p>
+                  </article>
+                  <article class="stat-card">
+                    <span class="stat-card__label">任务活跃度</span>
+                    <strong id="overviewActivityValue">--</strong>
+                    <p id="overviewActivityMeta">等待任务数据</p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel overview-jobs">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">最近流程</p>
+                    <h3>最近工单</h3>
+                  </div>
+                  <p>保持紧凑列表，只显示最近几条，用于快速跳转到监控页查看详情。</p>
+                </div>
+                <div class="overview-jobs__list" id="overviewJobsList"></div>
+              </section>
+
+              <section class="panel overview-guidance">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">治理提示</p>
+                    <h3>签名治理建议</h3>
+                  </div>
+                  <p>把管理员动作和普通用户动作明确拆开，减少错误配置。</p>
+                </div>
+
+                <div class="note-stack">
+                  <article class="note-card">
+                    <span class="note-card__label">托管密钥状态</span>
+                    <p id="overviewManagedKeySummary">正在读取签名配置...</p>
+                  </article>
+                  <article class="note-card">
+                    <span class="note-card__label">管理员动作</span>
+                    <p>生成托管密钥后，下载公钥并加入 Dify 的信任列表，再开放创建任务入口。</p>
+                  </article>
+                  <article class="note-card">
+                    <span class="note-card__label">普通用户动作</span>
+                    <p>常规提交只进入创建任务页，不需要进入签名中心做系统级配置。</p>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="page page--build" data-page="build" aria-labelledby="pageTitle">
+            <div class="page-grid build-grid">
+              <section class="panel build-panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">任务创建</p>
+                    <h3>创建离线打包任务</h3>
+                  </div>
+                  <p>这一页只负责提交任务。日志、历史列表和托管密钥全部拆走，避免单页过载。</p>
+                </div>
+
+                <form id="jobForm" class="job-form">
+                  <input type="hidden" name="source" id="sourceInput" value="local" />
+                  <input type="hidden" name="target_arch" id="archInput" value="amd64" />
+                  <input type="hidden" name="sign_output" id="signOutputInput" value="false" />
+
+                  <div class="build-top">
+                    <article class="config-card">
+                      <label class="field-label">输入来源</label>
+                      <div class="segment-control" id="sourceSwitch">
+                        <button type="button" class="segment-control__item is-active" data-source="local" aria-pressed="true">本地上传</button>
+                        <button type="button" class="segment-control__item" data-source="github" aria-pressed="false">GitHub 发布包</button>
+                        <button type="button" class="segment-control__item" data-source="market" aria-pressed="false">插件市场</button>
+                      </div>
+                    </article>
+
+                    <article class="config-card">
+                      <label class="field-label">目标架构</label>
+                      <div class="segment-control" id="archSwitch">
+                        <button type="button" class="segment-control__item is-active" data-arch="amd64" aria-pressed="true">amd64</button>
+                        <button type="button" class="segment-control__item" data-arch="arm64" aria-pressed="false">arm64</button>
+                      </div>
+                      <p class="strategy-card" id="strategyCard">正在读取运行策略...</p>
+                    </article>
+                  </div>
+
+                  <div class="build-workspace">
+                    <aside class="source-guide">
+                      <button type="button" class="source-guide__item is-active" data-guide="local">
+                        <span class="source-guide__index">01</span>
+                        <div>
+                          <strong>本地上传</strong>
+                          <p>已有 `.difypkg` 文件时，直接推入打包通道。</p>
+                        </div>
+                      </button>
+
+                      <button type="button" class="source-guide__item" data-guide="github">
+                        <span class="source-guide__index">02</span>
+                        <div>
+                          <strong>GitHub 发布包</strong>
+                          <p>按仓库、标签和资产名远程抓取插件包。</p>
+                        </div>
+                      </button>
+
+                      <button type="button" class="source-guide__item" data-guide="market">
+                        <span class="source-guide__index">03</span>
+                        <div>
+                          <strong>插件市场</strong>
+                          <p>从插件市场获取原包后，再执行离线重打包。</p>
+                        </div>
+                      </button>
+                    </aside>
+
+                    <div class="source-stage">
+                      <div class="source-block is-active" data-block="local">
+                        <div class="field-group">
+                          <label class="field-label" for="packageFile">上传 .difypkg</label>
+                          <label class="upload-dropzone" for="packageFile">
+                            <input id="packageFile" name="package_file" type="file" accept=".difypkg" />
+                            <span class="upload-dropzone__eyebrow">上传区域</span>
+                            <span class="upload-dropzone__title">拖入插件包，或点击选择文件</span>
+                            <span class="upload-dropzone__hint" id="fileHint">仅在本地上传模式下使用</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="source-block" data-block="github">
+                        <div class="field-grid">
+                          <div class="field-group">
+                            <label class="field-label" for="githubRepo">GitHub 仓库</label>
+                            <input id="githubRepo" name="github_repo" class="text-input" placeholder="owner/repository" />
+                          </div>
+                          <div class="field-group">
+                            <label class="field-label" for="githubRelease">Release 标签</label>
+                            <input id="githubRelease" name="github_release" class="text-input" placeholder="v0.0.1" />
+                          </div>
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label" for="githubAsset">资产文件名</label>
+                          <input id="githubAsset" name="github_asset" class="text-input" placeholder="plugin-name.difypkg" />
+                        </div>
+                      </div>
+
+                      <div class="source-block" data-block="market">
+                        <div class="field-grid">
+                          <div class="field-group">
+                            <label class="field-label" for="marketAuthor">作者</label>
+                            <input id="marketAuthor" name="market_author" class="text-input" placeholder="langgenius" />
+                          </div>
+                          <div class="field-group">
+                            <label class="field-label" for="marketName">插件名</label>
+                            <input id="marketName" name="market_name" class="text-input" placeholder="agent" />
+                          </div>
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label" for="marketVersion">版本号</label>
+                          <input id="marketVersion" name="market_version" class="text-input" placeholder="0.0.9" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="build-bottom">
+                    <article class="config-card config-card--sign">
+                      <label class="field-label">输出签名</label>
+                      <div class="segment-control" id="signSwitch">
+                        <button type="button" class="segment-control__item" data-sign="true" aria-pressed="false">签名输出</button>
+                        <button type="button" class="segment-control__item is-active" data-sign="false" aria-pressed="true">保持未签名</button>
+                      </div>
+                      <p class="strategy-card" id="signatureModeHint">
+                        未签名包仍可生成，但若 Dify 开启签名校验，安装时会被拒绝。
+                      </p>
+                      <p class="inline-note" id="signingConfigHint">正在检测签名运行态...</p>
+                      <p class="inline-note" id="verificationNotice">
+                        若 Dify 开启签名校验，仍需把对应公钥加入 `THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS`。
+                      </p>
+                    </article>
+
+                    <article class="config-card">
+                      <div class="field-grid field-grid--stack">
+                        <div class="field-group">
+                          <label class="field-label" for="signaturePrivateKey">一次性私钥 (.pem / .key)</label>
+                          <input id="signaturePrivateKey" name="signature_private_key" class="file-input" type="file" accept=".pem,.key" />
+                          <span class="inline-note" id="signaturePrivateKeyHint">高级覆盖：只有不想使用服务端托管密钥时才上传。</span>
+                        </div>
+
+                        <div class="field-group">
+                          <label class="field-label" for="signaturePublicKey">一次性公钥 (.pem / .pub)</label>
+                          <input id="signaturePublicKey" name="signature_public_key" class="file-input" type="file" accept=".pem,.pub,.key" />
+                          <span class="inline-note" id="signaturePublicKeyHint">高级覆盖：仅在本次任务本地校验时使用不同公钥。</span>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="config-card config-card--dispatch">
+                      <span class="dispatch-card__label">提交摘要</span>
+                      <div class="summary-badges">
+                        <span class="summary-badge" id="buildSourceBadge">本地上传</span>
+                        <span class="summary-badge" id="buildArchBadge">amd64</span>
+                        <span class="summary-badge" id="signModeBadge">未签名</span>
+                      </div>
+                      <p class="strategy-card" id="buildDispatchSummary">确认来源、架构和签名策略后再提交工单。</p>
+
+                      <button type="submit" class="primary-button" id="submitButton">
+                        <span class="primary-button__title">提交打包工单</span>
+                        <span class="primary-button__meta">执行离线打包流程</span>
+                      </button>
+
+                      <div class="dispatch-footnote">
+                        <p class="inline-note" data-role="status-hint" aria-live="polite">提交后，监控页会持续刷新状态和日志。</p>
+                        <p class="inline-note inline-note--muted">托管密钥属于管理员动作；普通用户通常不需要进入签名中心。</p>
+                      </div>
+                    </article>
+                  </div>
+                </form>
+              </section>
+            </div>
+          </section>
+
+          <section class="page page--monitor" data-page="monitor" aria-labelledby="pageTitle">
+            <div class="page-grid monitor-grid">
+              <section class="panel monitor-main">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">任务监控</p>
+                    <h3>任务监控</h3>
+                  </div>
+                  <p>这一页只承接运行反馈，不再和表单配置混在一起。</p>
+                </div>
+
+                <div class="status-grid">
+                  <article class="status-tile">
+                    <span class="status-tile__label">当前工单</span>
+                    <div class="status-tile__value" id="jobIdentity">尚未创建</div>
+                  </article>
+                  <article class="status-tile">
+                    <span class="status-tile__label">状态</span>
+                    <div class="status-pill status-pill--idle" id="jobStatus">空闲</div>
+                  </article>
+                  <article class="status-tile">
+                    <span class="status-tile__label">来源 / 架构</span>
+                    <div class="status-tile__value" id="jobSource">-</div>
+                  </article>
+                  <article class="status-tile">
+                    <span class="status-tile__label">最近更新</span>
+                    <div class="status-tile__value" id="jobUpdatedAt">-</div>
+                  </article>
+                </div>
+
+                <div class="artifact-card" id="artifactCard">
+                  <div>
+                    <div class="artifact-card__label">离线产物</div>
+                    <div class="artifact-card__name" id="artifactName">暂无产物</div>
+                  </div>
+                  <a class="artifact-card__download is-disabled" id="artifactLink" href="#" aria-disabled="true">下载离线包</a>
+                </div>
+
+                <div class="console-card">
+                  <div class="console-card__header">
+                    <span>实时脚本输出</span>
+                    <button type="button" class="ghost-button" id="clearConsoleButton">清空输出</button>
+                  </div>
+                  <pre id="consoleOutput" class="console-output">等待任务输出...</pre>
+                </div>
+              </section>
+
+              <aside class="panel monitor-side">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">监控摘要</p>
+                    <h3>监控侧栏</h3>
+                  </div>
+                  <p>把运行提示、当前策略和最近工单压缩到右侧，便于快速定位。</p>
+                </div>
+
+                <div class="monitor-side__stack">
+                  <article class="note-card">
+                    <span class="note-card__label">状态提示</span>
+                    <strong id="monitorStatusHeadline">等待任务</strong>
+                    <p data-role="status-hint">提交后会自动连接实时输出流。</p>
+                  </article>
+
+                  <article class="note-card">
+                    <span class="note-card__label">当前执行策略</span>
+                    <strong id="monitorStrategyHeadline">待选择</strong>
+                    <p id="monitorStrategyText">在创建任务页选择来源和架构后，这里会同步显示执行通道。</p>
+                  </article>
+                </div>
+
+                <div class="recent-jobs">
+                  <div class="recent-jobs__header">
+                    <div>
+                      <h3>最近工单</h3>
+                      <p>点击任意记录即可切换到该工单的状态和完整日志。</p>
+                    </div>
+                    <button type="button" class="ghost-button" id="refreshJobsButton">刷新列表</button>
+                  </div>
+                  <div class="recent-jobs__list" id="jobsList"></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page page--signing" data-page="signing" aria-labelledby="pageTitle">
+            <div class="page-grid signing-grid">
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">托管密钥</p>
+                    <h3>托管密钥</h3>
+                  </div>
+                  <p>管理员在这一页完成系统级签名配置，避免普通用户在提交工单时接触过多安全细节。</p>
+                </div>
+
+                <article class="key-cockpit">
+                  <div class="key-cockpit__header">
+                    <div>
+                      <span class="dispatch-card__label">托管密钥对</span>
+                      <strong id="managedKeyHeadline">尚未生成托管密钥</strong>
+                    </div>
+                    <div class="key-cockpit__chips">
+                      <span class="signal-chip signal-chip--soft" id="managedKeySourceChip">来源 --</span>
+                      <span class="signal-chip signal-chip--soft" id="managedKeyCliChip">CLI --</span>
+                      <span class="signal-chip signal-chip--soft" id="managedKeyOpenSslChip">OpenSSL --</span>
+                    </div>
+                  </div>
+
+                  <p class="strategy-card" id="managedKeyStatus">
+                    先在这里生成托管密钥，再把下载到的公钥加入 Dify 的信任链。
+                  </p>
+
+                  <div class="key-cockpit__meta">
+                    <div class="key-meta">
+                      <span class="key-meta__label">生成时间</span>
+                      <strong id="managedKeyGeneratedAt">-</strong>
+                    </div>
+                    <div class="key-meta">
+                      <span class="key-meta__label">公钥指纹</span>
+                      <strong id="managedKeyFingerprint">-</strong>
+                    </div>
+                  </div>
+
+                  <div class="key-cockpit__actions">
+                    <button type="button" class="ghost-button" id="generateManagedKeyButton">生成密钥对</button>
+                    <button type="button" class="ghost-button" id="downloadManagedPublicKeyButton">下载公钥</button>
+                    <button type="button" class="ghost-button" id="downloadManagedPrivateKeyButton">下载私钥</button>
+                  </div>
+
+                  <p class="inline-note" id="managedKeyActionHint">这是管理员动作。配置完成后，普通用户只需要在创建任务页上传包即可。</p>
+                </article>
+              </section>
+
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">运行能力</p>
+                    <h3>签名运行态</h3>
+                  </div>
+                    <p>检查命令行工具、OpenSSL 和服务端密钥状态，避免把错误留到提交工单时才暴露。</p>
+                </div>
+
+                <div class="signing-runtime-grid">
+                  <article class="stat-card">
+                    <span class="stat-card__label">服务端配置</span>
+                    <strong id="signingRuntimeValue">--</strong>
+                    <p id="signingRuntimeHint">等待配置加载</p>
+                  </article>
+                  <article class="stat-card">
+                    <span class="stat-card__label">CLI 能力</span>
+                    <strong id="signingCliValue">--</strong>
+                    <p id="signingCliHint">等待配置加载</p>
+                  </article>
+                  <article class="stat-card">
+                    <span class="stat-card__label">OpenSSL</span>
+                    <strong id="signingOpenSslValue">--</strong>
+                    <p id="signingOpenSslHint">等待配置加载</p>
+                  </article>
+                  <article class="stat-card">
+                    <span class="stat-card__label">默认策略</span>
+                    <strong id="signingDefaultValue">--</strong>
+                    <p id="signingDefaultHint">等待配置加载</p>
+                  </article>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">信任清单</p>
+                    <h3>接入清单</h3>
+                  </div>
+                    <p>把信任链步骤显式列出来，避免忘记把公钥同步到 Dify。</p>
+                </div>
+
+                <div class="checklist">
+                  <div class="checklist__item">
+                    <span>01</span>
+                    <p>生成托管密钥对前，优先确认当前运行环境具备 OpenSSL 和支持签名的 Dify 命令行工具。</p>
+                  </div>
+                  <div class="checklist__item">
+                    <span>02</span>
+                    <p>下载托管公钥，并将其加入 Dify `plugin_daemon` 的 `THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS`。</p>
+                  </div>
+                  <div class="checklist__item">
+                    <span>03</span>
+                    <p>回到创建任务页开启“签名输出”，普通用户无需再上传一次性密钥。</p>
                   </div>
                 </div>
+              </section>
 
-                <p class="strategy-card" id="managedKeyStatus">
-                  Generate a managed key pair once in this page, then download the public key and register it in Dify.
-                </p>
-
-                <div class="key-cockpit__meta">
-                  <div class="key-meta">
-                    <span class="key-meta__label">Generated At</span>
-                    <strong id="managedKeyGeneratedAt">-</strong>
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="panel__eyebrow">操作建议</p>
+                    <h3>当前建议</h3>
                   </div>
-                  <div class="key-meta">
-                    <span class="key-meta__label">Public Fingerprint</span>
-                    <strong id="managedKeyFingerprint">-</strong>
-                  </div>
+                  <p>把管理员和普通用户的建议分开显示，减轻心智负担。</p>
                 </div>
 
-                <div class="key-cockpit__actions">
-                  <button type="button" class="ghost-button" id="generateManagedKeyButton">Generate Key Pair</button>
-                  <button type="button" class="ghost-button" id="downloadManagedPublicKeyButton">Download Public Key</button>
-                  <button type="button" class="ghost-button" id="downloadManagedPrivateKeyButton">Download Private Key</button>
+                <div class="note-stack">
+                  <article class="note-card">
+                    <span class="note-card__label">管理员建议</span>
+                    <p id="signingAdminAdvice">正在读取签名建议...</p>
+                  </article>
+                  <article class="note-card">
+                    <span class="note-card__label">普通用户建议</span>
+                    <p id="signingUserAdvice">正在读取签名建议...</p>
+                  </article>
+                  <button type="button" class="action-tile action-tile--inline" data-page-target="build">
+                    <span class="action-tile__index">前往</span>
+                    <strong>返回创建任务页</strong>
+                    <p>完成系统级配置后，回到专门的提交页面发起工单。</p>
+                  </button>
                 </div>
-
-                <p class="inline-note" id="managedKeyActionHint">
-                  This is the admin step. Once Dify trusts the downloaded public key, end users can just upload plugin packages here.
-                </p>
-              </article>
-
-              <div class="field-grid">
-                <div class="field-group">
-                  <label class="field-label" for="signaturePrivateKey">Private Key (.pem / .key)</label>
-                  <input id="signaturePrivateKey" name="signature_private_key" class="file-input" type="file" accept=".pem,.key" />
-                  <span class="inline-note" id="signaturePrivateKeyHint">
-                    Advanced override. Upload a one-off private key only if you do not want to use the managed server key pair.
-                  </span>
-                </div>
-
-                <div class="field-group">
-                  <label class="field-label" for="signaturePublicKey">Public Key (.pem / .pub)</label>
-                  <input id="signaturePublicKey" name="signature_public_key" class="file-input" type="file" accept=".pem,.pub,.key" />
-                  <span class="inline-note" id="signaturePublicKeyHint">
-                    Advanced override. Upload a one-off public key only if you want local verification to use a different key.
-                  </span>
-                </div>
-              </div>
-
-              <p class="inline-note" id="verificationNotice">
-                Dify still needs the matching public key in <code>THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS</code>, or signature enforcement must be disabled.
-              </p>
-            </section>
-
-            <div class="form-footer">
-              <button type="submit" class="primary-button" id="submitButton">
-                <span class="primary-button__title">Dispatch Packaging Job</span>
-                <span class="primary-button__meta">Run repackaging pipeline</span>
-              </button>
-
-              <div class="action-copy">
-                <span class="inline-note" id="submitHint" aria-live="polite">After dispatch, the telemetry panel keeps refreshing status and logs.</span>
-                <span class="inline-note inline-note--muted">Admin initializes the managed key pair once here. After Dify trusts the public key, regular users only need to upload plugin packages.</span>
-              </div>
+              </section>
             </div>
-          </form>
-        </section>
-
-        <section class="panel panel--telemetry">
-          <div class="panel__heading">
-            <div>
-              <div class="panel__eyebrow">Telemetry Deck</div>
-              <h2>Telemetry</h2>
-            </div>
-            <p>The active job, runtime status, artifact delivery, live output, and recent executions are kept inside one monitoring surface.</p>
-          </div>
-
-          <div class="status-grid">
-            <article class="status-tile">
-              <span class="status-tile__label">Active Job</span>
-              <div class="status-tile__value" id="jobIdentity">Not created yet</div>
-            </article>
-
-            <article class="status-tile">
-              <span class="status-tile__label">Status</span>
-              <div class="status-pill status-pill--idle" id="jobStatus">Idle</div>
-            </article>
-
-            <article class="status-tile">
-              <span class="status-tile__label">Source / Target</span>
-              <div class="status-tile__value" id="jobSource">-</div>
-            </article>
-
-            <article class="status-tile">
-              <span class="status-tile__label">Last Update</span>
-              <div class="status-tile__value" id="jobUpdatedAt">-</div>
-            </article>
-          </div>
-
-          <div class="artifact-card" id="artifactCard">
-            <div>
-              <div class="artifact-card__label">Output Package</div>
-              <div class="artifact-card__name" id="artifactName">None</div>
-            </div>
-            <a class="artifact-card__download is-disabled" id="artifactLink" href="#" aria-disabled="true">Download Offline Build</a>
-          </div>
-
-          <div class="console-card">
-            <div class="console-card__header">
-              <span>Live Script Output</span>
-              <button type="button" class="ghost-button" id="clearConsoleButton">Clear Output</button>
-            </div>
-            <pre id="consoleOutput" class="console-output">Waiting for a job...</pre>
-          </div>
-
-          <div class="recent-jobs">
-            <div class="recent-jobs__header">
-              <div>
-                <h3>Recent Jobs</h3>
-                <p>Click any record to reload its status, error state, and full execution log.</p>
-              </div>
-              <button type="button" class="ghost-button" id="refreshJobsButton">Refresh List</button>
-            </div>
-            <div class="recent-jobs__list" id="jobsList"></div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
+      </div>
     </div>
 
     <script src="__APP_JS_URL__" defer></script>

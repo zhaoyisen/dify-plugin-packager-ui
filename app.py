@@ -139,7 +139,7 @@ def get_job(job_id: str) -> JobRecord:
     with jobs_lock:
         job = jobs.get(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="任务不存在")
     return job
 
 
@@ -158,7 +158,7 @@ def ensure_vendor_files() -> None:
     ]
     missing = [name for name in required if not (VENDOR_DIR / name).exists()]
     if missing:
-        raise RuntimeError(f"Vendor assets missing: {', '.join(missing)}")
+        raise RuntimeError(f"依赖资源缺失：{', '.join(missing)}")
 
 
 def parse_form_bool(value: str | None, *, default: bool = False) -> bool:
@@ -501,7 +501,7 @@ def resolve_private_key_path(job: JobRecord) -> tuple[Path, str]:
     if job.signature_private_key_path:
         private_key_path = Path(job.signature_private_key_path)
         if not private_key_path.is_file():
-            raise RuntimeError(f"Uploaded private key not found: {private_key_path}")
+            raise RuntimeError(f"未找到已上传的私钥文件：{private_key_path}")
         return private_key_path, "uploaded"
 
     private_key_path, private_key_source = resolve_server_private_key_path()
@@ -511,24 +511,24 @@ def resolve_private_key_path(job: JobRecord) -> tuple[Path, str]:
     if private_key_source == "env_invalid":
         configured_path = env_path(SIGNING_PRIVATE_KEY_PATH_ENV)
         raise RuntimeError(
-            f"Configured private key path is invalid: {configured_path}. "
-            f"Please fix {SIGNING_PRIVATE_KEY_PATH_ENV}."
+            f"配置的私钥路径无效：{configured_path}。"
+            f"请检查 {SIGNING_PRIVATE_KEY_PATH_ENV}。"
         )
 
     if not private_key_path:
         raise RuntimeError(
-            "Signing was requested but no private key is available. "
-            "Upload one, generate a managed key pair in the UI, "
-            f"or configure {SIGNING_PRIVATE_KEY_PATH_ENV}."
+            "当前任务已要求签名，但没有可用私钥。"
+            "请上传私钥、在界面中生成托管密钥对，"
+            f"或配置 {SIGNING_PRIVATE_KEY_PATH_ENV}。"
         )
-    raise RuntimeError("Signing was requested but no usable private key is available.")
+    raise RuntimeError("当前任务已要求签名，但没有可用的私钥。")
 
 
 def resolve_public_key_path(job: JobRecord) -> tuple[Path | None, str]:
     if job.signature_public_key_path:
         public_key_path = Path(job.signature_public_key_path)
         if not public_key_path.is_file():
-            raise RuntimeError(f"Uploaded public key not found: {public_key_path}")
+            raise RuntimeError(f"未找到已上传的公钥文件：{public_key_path}")
         return public_key_path, "uploaded"
 
     public_key_path, public_key_source = resolve_server_public_key_path()
@@ -536,8 +536,8 @@ def resolve_public_key_path(job: JobRecord) -> tuple[Path | None, str]:
         return None, public_key_source
     if not public_key_path.is_file():
         job.log(
-            f"[sign] Verification skipped because {SIGNING_PUBLIC_KEY_PATH_ENV} "
-            f"points to a missing file: {public_key_path}"
+            f"[签名] 跳过验签，因为 {SIGNING_PUBLIC_KEY_PATH_ENV} "
+            f"指向的文件不存在：{public_key_path}"
         )
         return None, "invalid"
     return public_key_path, public_key_source
@@ -551,17 +551,17 @@ def sign_package(
 ) -> Path:
     cli_path = runner_dir / host_cli_binary_name()
     if not cli_path.is_file():
-        raise RuntimeError(f"Signing CLI is missing: {cli_path.name}")
+        raise RuntimeError(f"缺少签名命令行工具：{cli_path.name}")
     signature_cli_status = detect_signature_cli_status()
     if not signature_cli_status["supported"]:
-        raise RuntimeError(signature_cli_status["error"] or "The bundled signing CLI does not support plugin signatures.")
+        raise RuntimeError(signature_cli_status["error"] or "当前内置签名命令行工具不支持插件签名。")
 
     private_key_path, private_key_source = resolve_private_key_path(job)
     public_key_path, public_key_source = resolve_public_key_path(job)
 
     job.log(
-        "[sign] Signing output package with "
-        f"{private_key_source} private key ({describe_key_path(private_key_path)})"
+        "[签名] 正在使用"
+        f"{private_key_source}私钥进行签名（{describe_key_path(private_key_path)}）"
     )
     run_subprocess(
         job,
@@ -578,15 +578,15 @@ def sign_package(
     if not signed_path:
         raise RuntimeError("Signing finished but no .signed.difypkg file was generated")
 
-    job.log(f"[sign] Signed package ready: {signed_path.name}")
+    job.log(f"[签名] 已生成签名包：{signed_path.name}")
 
     if not public_key_path:
-        job.log("[sign] Verification skipped: no public key was uploaded or configured")
+        job.log("[签名] 跳过验签：没有上传或配置可用公钥")
         return signed_path
 
     job.log(
-        "[sign] Verifying signed package with "
-        f"{public_key_source} public key ({describe_key_path(public_key_path)})"
+        "[签名] 正在使用"
+        f"{public_key_source}公钥进行验签（{describe_key_path(public_key_path)}）"
     )
     run_subprocess(
         job,
@@ -598,7 +598,7 @@ def sign_package(
             "[public-key]"
         ),
     )
-    job.log("[sign] Signature verification succeeded")
+    job.log("[签名] 验签成功")
     return signed_path
 
 
@@ -815,7 +815,7 @@ async def generate_managed_signing_keys(overwrite: bool = False) -> JSONResponse
 
     return JSONResponse(
         {
-            "message": "Managed signing key pair generated successfully.",
+            "message": "托管签名密钥对已生成。",
             "managed_key_pair": state,
             "signing": get_signing_runtime_config(),
         },
@@ -827,11 +827,11 @@ async def generate_managed_signing_keys(overwrite: bool = False) -> JSONResponse
 async def download_managed_signing_key(key_kind: str) -> FileResponse:
     normalized = key_kind.strip().lower()
     if normalized not in {"private", "public"}:
-        raise HTTPException(status_code=400, detail="Key kind must be `private` or `public`.")
+        raise HTTPException(status_code=400, detail="密钥类型必须是 `private` 或 `public`。")
 
     path = managed_private_key_path() if normalized == "private" else managed_public_key_path()
     if not path.is_file():
-        raise HTTPException(status_code=404, detail="Managed signing key not found.")
+        raise HTTPException(status_code=404, detail="未找到托管签名密钥。")
 
     return FileResponse(path, filename=path.name)
 
@@ -851,10 +851,10 @@ async def job_download(job_id: str) -> FileResponse:
     job = get_job(job_id)
     snapshot = job.snapshot()
     if snapshot["status"] != "succeeded" or not snapshot["artifact_path"]:
-        raise HTTPException(status_code=409, detail="Job output is not ready")
+        raise HTTPException(status_code=409, detail="任务产物尚未就绪")
     artifact_path = Path(snapshot["artifact_path"])
     if not artifact_path.exists():
-        raise HTTPException(status_code=404, detail="Artifact not found")
+        raise HTTPException(status_code=404, detail="未找到产物文件")
     return FileResponse(artifact_path, filename=snapshot["artifact_name"])
 
 
@@ -909,13 +909,13 @@ async def create_job(
     source = source.strip().lower()
     target_arch = target_arch.strip().lower()
     if source not in SUPPORTED_SOURCES:
-        raise HTTPException(status_code=400, detail="Unsupported source")
+        raise HTTPException(status_code=400, detail="不支持的来源类型")
     if target_arch not in SUPPORTED_ARCHES:
-        raise HTTPException(status_code=400, detail="Unsupported target architecture")
+        raise HTTPException(status_code=400, detail="不支持的目标架构")
     if host_arch == "arm64" and target_arch == "amd64":
         raise HTTPException(
             status_code=400,
-            detail="Current runtime is arm64. amd64 target is not supported by the bundled scripts.",
+            detail="当前运行环境为 arm64，内置脚本不支持生成 amd64 目标产物。",
         )
 
     job_id = uuid.uuid4().hex[:12]
@@ -931,7 +931,7 @@ async def create_job(
 
     if source == "local":
         if not package_file or not package_file.filename:
-            raise HTTPException(status_code=400, detail="Local package file is required")
+            raise HTTPException(status_code=400, detail="本地上传模式必须提供插件包文件")
         input_name = safe_filename(package_file.filename)
         target_path = input_dir / input_name
         with target_path.open("wb") as handle:
@@ -949,7 +949,7 @@ async def create_job(
             if not value or not value.strip()
         ]
         if missing:
-            raise HTTPException(status_code=400, detail=f"Missing fields: {', '.join(missing)}")
+            raise HTTPException(status_code=400, detail=f"缺少字段：{', '.join(missing)}")
         meta = {
             "github_repo": github_repo.strip(),
             "github_release": github_release.strip(),
@@ -967,7 +967,7 @@ async def create_job(
             if not value or not value.strip()
         ]
         if missing:
-            raise HTTPException(status_code=400, detail=f"Missing fields: {', '.join(missing)}")
+            raise HTTPException(status_code=400, detail=f"缺少字段：{', '.join(missing)}")
         meta = {
             "market_author": market_author.strip(),
             "market_name": market_name.strip(),
@@ -1008,15 +1008,15 @@ async def create_job(
         raise HTTPException(
             status_code=400,
             detail=(
-                "Signing was requested but no private key is available. "
-                "Upload a private key, generate a managed key pair in the UI, "
-                f"or configure {SIGNING_PRIVATE_KEY_PATH_ENV}."
+                "当前任务已要求签名，但没有可用私钥。"
+                "请上传私钥、在界面中生成托管密钥对，"
+                f"或配置 {SIGNING_PRIVATE_KEY_PATH_ENV}。"
             ),
         )
     if sign_output_requested and not signature_cli_ready:
         raise HTTPException(
             status_code=400,
-            detail=detect_signature_cli_status()["error"] or "The bundled signing CLI does not support plugin signatures.",
+            detail=detect_signature_cli_status()["error"] or "当前内置签名命令行工具不支持插件签名。",
         )
 
     if sign_output_requested:
