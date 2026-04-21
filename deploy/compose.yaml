@@ -11,11 +11,15 @@ services:
       PIP_MIRROR_URL: ${PIP_MIRROR_URL:-https://mirrors.aliyun.com/pypi/simple}
       GITHUB_API_URL: ${GITHUB_API_URL:-https://github.com}
       MARKETPLACE_API_URL: ${MARKETPLACE_API_URL:-https://marketplace.dify.ai}
+      PLUGIN_SIGNING_PRIVATE_KEY_PATH: ${PLUGIN_SIGNING_PRIVATE_KEY_PATH:-}
+      PLUGIN_SIGNING_PUBLIC_KEY_PATH: ${PLUGIN_SIGNING_PUBLIC_KEY_PATH:-}
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       NO_PROXY: ${NO_PROXY:-}
     volumes:
       - dify_plugin_packager_jobs:/app/data/jobs
+      - dify_plugin_packager_signing:/app/data/signing
+      - ./keys:/app/keys:ro
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/api/config', timeout=5).read()"]
       interval: 20s
@@ -26,3 +30,5 @@ services:
 volumes:
   dify_plugin_packager_jobs:
     name: dify_plugin_packager_jobs
+  dify_plugin_packager_signing:
+    name: dify_plugin_packager_signing

@@ -50,7 +50,9 @@ pipeline {
       steps {
         sh '''
           set -eux
-          cp deploy/.env.example deploy/.env
+          if [ ! -f deploy/.env ]; then
+            cp deploy/.env.example deploy/.env
+          fi
 
           if grep -q '^IMAGE_TAG=' deploy/.env; then
             sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${IMAGE_TAG}/" deploy/.env

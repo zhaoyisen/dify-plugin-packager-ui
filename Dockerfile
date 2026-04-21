@@ -18,7 +18,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
         sed -i "s|http://deb.debian.org/debian|${DEBIAN_MIRROR}|g; s|https://deb.debian.org/debian|${DEBIAN_MIRROR}|g; s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g; s|https://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" /etc/apt/sources.list; \
     fi \
     && apt-get update \
-    && apt-get install -y --no-install-recommends bash curl unzip ca-certificates \
+    && apt-get install -y --no-install-recommends bash curl unzip openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt

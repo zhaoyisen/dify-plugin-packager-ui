@@ -196,6 +196,101 @@
               </div>
             </div>
 
+            <section class="signature-stage">
+              <div class="signature-stage__header">
+                <div>
+                  <div class="panel__eyebrow">Signature Chain</div>
+                  <h3>Signature</h3>
+                </div>
+                <p>
+                  If the target Dify instance enables plugin signature verification,
+                  the rebuilt package must be signed and the matching public key must
+                  already be trusted by its <code>plugin_daemon</code>.
+                </p>
+              </div>
+
+              <input type="hidden" name="sign_output" id="signOutputInput" value="false" />
+
+              <div class="dispatch-grid signature-grid">
+                <article class="dispatch-card">
+                  <span class="dispatch-card__label">Output Mode</span>
+                  <div class="segment-control" id="signSwitch">
+                    <button type="button" class="segment-control__item" data-sign="true" aria-pressed="false">Sign Output</button>
+                    <button type="button" class="segment-control__item is-active" data-sign="false" aria-pressed="true">Leave Unsigned</button>
+                  </div>
+                  <p class="strategy-card" id="signatureModeHint">
+                    Unsigned output is still allowed here, but installation will fail on Dify instances with signature verification enabled.
+                  </p>
+                </article>
+
+                <article class="dispatch-card">
+                  <span class="dispatch-card__label">Server Key Status</span>
+                  <p class="strategy-card" id="signingConfigHint">Inspecting signing configuration...</p>
+                </article>
+              </div>
+
+              <article class="dispatch-card key-cockpit">
+                <div class="key-cockpit__header">
+                  <div>
+                    <span class="dispatch-card__label">Managed Key Pair</span>
+                    <strong id="managedKeyHeadline">No managed key pair yet</strong>
+                  </div>
+                  <div class="key-cockpit__chips">
+                    <span class="signal-pill signal-pill--soft" id="managedKeySourceChip">Source --</span>
+                    <span class="signal-pill signal-pill--soft" id="managedKeyCliChip">CLI --</span>
+                    <span class="signal-pill signal-pill--soft" id="managedKeyOpenSslChip">OpenSSL --</span>
+                  </div>
+                </div>
+
+                <p class="strategy-card" id="managedKeyStatus">
+                  Generate a managed key pair once in this page, then download the public key and register it in Dify.
+                </p>
+
+                <div class="key-cockpit__meta">
+                  <div class="key-meta">
+                    <span class="key-meta__label">Generated At</span>
+                    <strong id="managedKeyGeneratedAt">-</strong>
+                  </div>
+                  <div class="key-meta">
+                    <span class="key-meta__label">Public Fingerprint</span>
+                    <strong id="managedKeyFingerprint">-</strong>
+                  </div>
+                </div>
+
+                <div class="key-cockpit__actions">
+                  <button type="button" class="ghost-button" id="generateManagedKeyButton">Generate Key Pair</button>
+                  <button type="button" class="ghost-button" id="downloadManagedPublicKeyButton">Download Public Key</button>
+                  <button type="button" class="ghost-button" id="downloadManagedPrivateKeyButton">Download Private Key</button>
+                </div>
+
+                <p class="inline-note" id="managedKeyActionHint">
+                  This is the admin step. Once Dify trusts the downloaded public key, end users can just upload plugin packages here.
+                </p>
+              </article>
+
+              <div class="field-grid">
+                <div class="field-group">
+                  <label class="field-label" for="signaturePrivateKey">Private Key (.pem / .key)</label>
+                  <input id="signaturePrivateKey" name="signature_private_key" class="file-input" type="file" accept=".pem,.key" />
+                  <span class="inline-note" id="signaturePrivateKeyHint">
+                    Advanced override. Upload a one-off private key only if you do not want to use the managed server key pair.
+                  </span>
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="signaturePublicKey">Public Key (.pem / .pub)</label>
+                  <input id="signaturePublicKey" name="signature_public_key" class="file-input" type="file" accept=".pem,.pub,.key" />
+                  <span class="inline-note" id="signaturePublicKeyHint">
+                    Advanced override. Upload a one-off public key only if you want local verification to use a different key.
+                  </span>
+                </div>
+              </div>
+
+              <p class="inline-note" id="verificationNotice">
+                Dify still needs the matching public key in <code>THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS</code>, or signature enforcement must be disabled.
+              </p>
+            </section>
+
             <div class="form-footer">
               <button type="submit" class="primary-button" id="submitButton">
                 <span class="primary-button__title">Dispatch Packaging Job</span>
@@ -204,7 +299,7 @@
 
               <div class="action-copy">
                 <span class="inline-note" id="submitHint" aria-live="polite">After dispatch, the telemetry panel keeps refreshing status and logs.</span>
-                <span class="inline-note inline-note--muted">Backend endpoints stay the same. This pass only rebuilds the UI structure, hierarchy, and feedback density.</span>
+                <span class="inline-note inline-note--muted">Admin initializes the managed key pair once here. After Dify trusts the public key, regular users only need to upload plugin packages.</span>
               </div>
             </div>
           </form>

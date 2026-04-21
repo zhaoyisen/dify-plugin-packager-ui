@@ -7,5 +7,9 @@ env/
 
 .env
 deploy/.env
+deploy/keys/*.pem
+deploy/keys/*.key
+deploy/keys/*.pub
 
 data/jobs/
+data/signing/

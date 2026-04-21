@@ -24,10 +24,29 @@ const SOURCE_LABELS = {
 
 const sourceInput = document.getElementById("sourceInput");
 const archInput = document.getElementById("archInput");
+const signOutputInput = document.getElementById("signOutputInput");
 const packageFile = document.getElementById("packageFile");
 const fileHint = document.getElementById("fileHint");
 const strategyCard = document.getElementById("strategyCard");
 const compatibilityHint = document.getElementById("compatibilityHint");
+const signatureModeHint = document.getElementById("signatureModeHint");
+const signingConfigHint = document.getElementById("signingConfigHint");
+const signaturePrivateKey = document.getElementById("signaturePrivateKey");
+const signaturePublicKey = document.getElementById("signaturePublicKey");
+const signaturePrivateKeyHint = document.getElementById("signaturePrivateKeyHint");
+const signaturePublicKeyHint = document.getElementById("signaturePublicKeyHint");
+const verificationNotice = document.getElementById("verificationNotice");
+const managedKeyHeadline = document.getElementById("managedKeyHeadline");
+const managedKeyStatus = document.getElementById("managedKeyStatus");
+const managedKeyGeneratedAt = document.getElementById("managedKeyGeneratedAt");
+const managedKeyFingerprint = document.getElementById("managedKeyFingerprint");
+const managedKeySourceChip = document.getElementById("managedKeySourceChip");
+const managedKeyCliChip = document.getElementById("managedKeyCliChip");
+const managedKeyOpenSslChip = document.getElementById("managedKeyOpenSslChip");
+const managedKeyActionHint = document.getElementById("managedKeyActionHint");
+const generateManagedKeyButton = document.getElementById("generateManagedKeyButton");
+const downloadManagedPublicKeyButton = document.getElementById("downloadManagedPublicKeyButton");
+const downloadManagedPrivateKeyButton = document.getElementById("downloadManagedPrivateKeyButton");
 const jobForm = document.getElementById("jobForm");
 const submitButton = document.getElementById("submitButton");
 const submitHint = document.getElementById("submitHint");
@@ -49,10 +68,12 @@ const uploadDropzone = document.querySelector(".upload-dropzone");
 let currentJobId = null;
 let currentSource = "local";
 let currentArch = "amd64";
+let currentSignOutput = false;
 let currentJobStatus = "idle";
 let currentEventSource = null;
 let appConfig = null;
 let isSubmitting = false;
+let isGeneratingManagedKeys = false;
 
 function formatStatusClass(status) {
   return `status-pill status-pill--${status || "idle"}`;
@@ -91,6 +112,59 @@ function simplifyUrl(value) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function signingConfig() {
+  return appConfig?.signing || {};
+}
+
+function managedKeyPair() {
+  return signingConfig().managed_key_pair || {};
+}
+
+function signatureCliStatus() {
+  return signingConfig().signature_cli || {};
+}
+
+function opensslStatus() {
+  return signingConfig().openssl || {};
+}
+
+function hasServerPrivateKey() {
+  return Boolean(signingConfig().active_private_key_configured);
+}
+
+function hasServerPublicKey() {
+  return Boolean(signingConfig().active_public_key_configured);
+}
+
+function hasUploadedPrivateKey() {
+  return Boolean(signaturePrivateKey.files?.[0]);
+}
+
+function hasUploadedPublicKey() {
+  return Boolean(signaturePublicKey.files?.[0]);
+}
+
+function hasSigningPrivateKeyAvailable() {
+  return hasUploadedPrivateKey() || hasServerPrivateKey();
+}
+
+function signatureCliSupported() {
+  return Boolean(signatureCliStatus().supported);
+}
+
+function canSignInCurrentRuntime() {
+  return signatureCliSupported() && hasSigningPrivateKeyAvailable();
+}
+
 function isTargetUnsupported(arch) {
   if (!appConfig) {
     return false;
@@ -103,6 +177,7 @@ function syncSubmitState() {
   submitButton.disabled =
     isSubmitting ||
     isTargetUnsupported(currentArch) ||
+    (currentSignOutput && !canSignInCurrentRuntime()) ||
     currentJobStatus === "queued" ||
     currentJobStatus === "running";
 }
@@ -125,6 +200,207 @@ function updateFileHint() {
   const selectedName = packageFile.files?.[0]?.name;
   fileHint.textContent = selectedName || "Only used in local upload mode";
   uploadDropzone?.classList.toggle("is-filled", Boolean(selectedName));
+}
+
+function buildSigningConfigHint() {
+  if (!appConfig) {
+    return "Inspecting signing configuration...";
+  }
+
+  const signing = signingConfig();
+  const privateKeyState = signing.active_private_key_configured
+    ? `Active private key: ${signing.active_private_key_name} (${signing.active_private_key_source}).`
+    : signing.server_private_key_error
+      ? `Configured private key is invalid: ${signing.server_private_key_error}.`
+      : "No active private key is available yet.";
+
+  const publicKeyState = signing.active_public_key_configured
+    ? `Active public key: ${signing.active_public_key_name} (${signing.active_public_key_source}).`
+    : signing.server_public_key_error
+      ? `Configured public key is invalid: ${signing.server_public_key_error}.`
+      : "No active public key is available yet.";
+
+  const cliState = signatureCliSupported()
+    ? `Bundled CLI ${signatureCliStatus().binary_name} supports plugin signatures.`
+    : signatureCliStatus().error || "Bundled CLI signature capability is unavailable.";
+
+  return `${privateKeyState} ${publicKeyState} ${cliState}`;
+}
+
+function renderManagedKeyPanel() {
+  const managed = managedKeyPair();
+  const activeSource = signingConfig().active_private_key_source || "none";
+
+  managedKeyHeadline.textContent = managed.configured
+    ? "Managed signing key pair is ready"
+    : "No managed signing key pair yet";
+  managedKeyStatus.textContent = managed.configured
+    ? "This key pair lives in the packager service. Download the public key once, trust it in Dify, and then end users can just upload packages."
+    : "Generate a managed key pair once in this page, then download the public key and register it in Dify.";
+
+  managedKeyGeneratedAt.textContent = formatDate(managed.generated_at);
+  managedKeyFingerprint.textContent = managed.public_key_fingerprint || "-";
+
+  managedKeySourceChip.textContent = `Source ${String(activeSource || "none").toUpperCase()}`;
+  managedKeyCliChip.textContent = signatureCliSupported()
+    ? `CLI ${signatureCliStatus().binary_name || "ready"}`
+    : "CLI Upgrade Required";
+  managedKeyOpenSslChip.textContent = opensslStatus().available
+    ? "OpenSSL Ready"
+    : "OpenSSL Missing";
+
+  generateManagedKeyButton.textContent = isGeneratingManagedKeys
+    ? "Generating..."
+    : managed.configured
+      ? "Rotate Key Pair"
+      : "Generate Key Pair";
+  generateManagedKeyButton.disabled = isGeneratingManagedKeys || !opensslStatus().available;
+  downloadManagedPublicKeyButton.disabled = !managed.configured;
+  downloadManagedPrivateKeyButton.disabled = !managed.configured;
+
+  if (!opensslStatus().available) {
+    managedKeyActionHint.textContent = opensslStatus().error || "Install OpenSSL in the runtime first.";
+  } else if (!managed.configured) {
+    managedKeyActionHint.textContent =
+      "Admin step: generate the key pair here, download the public key, and add it to Dify plugin_daemon once.";
+  } else if (activeSource === "env" || activeSource === "env_invalid") {
+    managedKeyActionHint.textContent =
+      "Managed keys exist, but env-configured signing keys are taking precedence right now.";
+  } else if (!signatureCliSupported()) {
+    managedKeyActionHint.textContent =
+      signatureCliStatus().error || "The managed key pair is ready, but the bundled Dify CLI still cannot sign packages.";
+  } else {
+    managedKeyActionHint.textContent =
+      "Managed keys are active. After Dify trusts the public key, end users can just upload plugin packages here.";
+  }
+}
+
+function updateSignatureHints() {
+  const privateKeyName = signaturePrivateKey.files?.[0]?.name;
+  const publicKeyName = signaturePublicKey.files?.[0]?.name;
+  const signing = signingConfig();
+
+  signaturePrivateKeyHint.textContent = privateKeyName
+    ? `Uploaded for this job: ${privateKeyName}`
+    : hasServerPrivateKey()
+      ? `No upload required. The active signing key is ${signing.active_private_key_name} (${signing.active_private_key_source}).`
+      : "Advanced override. Upload a private key for this job, or generate a managed key pair in the page.";
+
+  signaturePublicKeyHint.textContent = publicKeyName
+    ? `Uploaded for local verification: ${publicKeyName}`
+    : hasServerPublicKey()
+      ? `No upload required. The active verification key is ${signing.active_public_key_name} (${signing.active_public_key_source}).`
+      : "Advanced override. Upload a public key if you want local verification to use a different key.";
+
+  if (!currentSignOutput) {
+    signatureModeHint.textContent =
+      "Unsigned output is still allowed here, but installation will fail on Dify instances with signature verification enabled.";
+  } else if (!signatureCliSupported()) {
+    signatureModeHint.textContent =
+      signatureCliStatus().error || "Signing is enabled, but the bundled Dify CLI does not support plugin signatures.";
+  } else if (hasUploadedPrivateKey()) {
+    signatureModeHint.textContent = `This job will sign the output with the uploaded private key: ${privateKeyName}.`;
+  } else if (hasServerPrivateKey()) {
+    signatureModeHint.textContent = `This job will sign the output with ${signing.active_private_key_name} (${signing.active_private_key_source}).`;
+  } else {
+    signatureModeHint.textContent =
+      "Signing is enabled, but no private key is available yet. Generate a managed key pair or upload a one-off private key.";
+  }
+
+  if (hasUploadedPublicKey()) {
+    verificationNotice.innerHTML =
+      `The backend will verify the signed package with <code>${escapeHtml(publicKeyName)}</code> after signing. Dify still needs the same public key in <code>THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS</code>.`;
+  } else if (hasServerPublicKey()) {
+    verificationNotice.innerHTML =
+      `The backend will verify the signed package with <code>${escapeHtml(signing.active_public_key_name)}</code> (${escapeHtml(signing.active_public_key_source)}). Dify still needs the same public key in <code>THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS</code>.`;
+  } else {
+    verificationNotice.innerHTML =
+      "Dify still needs the matching public key in <code>THIRD_PARTY_SIGNATURE_VERIFICATION_PUBLIC_KEYS</code>, or signature enforcement must be disabled.";
+  }
+
+  signingConfigHint.textContent = buildSigningConfigHint();
+  renderManagedKeyPanel();
+  syncSubmitState();
+}
+
+function applySigningConfig(signing) {
+  appConfig = appConfig || {};
+  appConfig.signing = signing || {};
+}
+
+async function loadSigningConfig() {
+  const response = await fetch("/api/signing");
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload.detail || "Failed to load signing config");
+  }
+
+  applySigningConfig(payload);
+  updateSignatureHints();
+}
+
+function downloadManagedKey(kind) {
+  window.location.href = `/api/signing/managed/download/${kind}`;
+}
+
+async function generateManagedKeyPair() {
+  const overwrite = managedKeyPair().configured
+    ? window.confirm("A managed key pair already exists. Rotate it now? Download the old private key first if you still need a backup.")
+    : false;
+
+  if (managedKeyPair().configured && !overwrite) {
+    return;
+  }
+
+  isGeneratingManagedKeys = true;
+  renderManagedKeyPanel();
+  submitHint.textContent = overwrite
+    ? "Rotating managed signing key pair..."
+    : "Generating managed signing key pair...";
+
+  try {
+    const response = await fetch(`/api/signing/managed/generate?overwrite=${overwrite ? "true" : "false"}`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.detail || "Failed to generate managed signing keys");
+    }
+
+    applySigningConfig(payload.signing);
+    updateSignatureHints();
+
+    if (!currentSignOutput && canSignInCurrentRuntime()) {
+      setSignOutput(true);
+    }
+
+    const message = overwrite
+      ? "Managed signing key pair rotated."
+      : "Managed signing key pair generated.";
+    submitHint.textContent = message;
+    appendLog(`[deck] ${message}`);
+  } catch (error) {
+    submitHint.textContent = error.message;
+    appendLog(`[deck] ${error.message}`);
+  } finally {
+    isGeneratingManagedKeys = false;
+    renderManagedKeyPanel();
+  }
+}
+
+function setSignOutput(enabled) {
+  currentSignOutput = enabled;
+  signOutputInput.value = String(enabled);
+
+  document.querySelectorAll("#signSwitch .segment-control__item").forEach((button) => {
+    const active = String(enabled) === button.dataset.sign;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  updateSignatureHints();
 }
 
 function setSource(source) {
@@ -336,9 +612,12 @@ async function loadConfig() {
   mirrorChip.textContent = `Mirror ${simplifyUrl(appConfig.pip_mirror_url)}`;
   mirrorChip.title = appConfig.pip_mirror_url;
   compatibilityHint.textContent = buildCompatibilityHint();
+  applySigningConfig(appConfig.signing);
+  setSignOutput(Boolean(signingConfig().enabled_by_default));
 
   updateArchAvailability();
   updateStrategyHint();
+  updateSignatureHints();
 }
 
 async function loadJobs() {
@@ -458,7 +737,21 @@ document.querySelectorAll("#archSwitch .segment-control__item").forEach((button)
   button.addEventListener("click", () => setArch(button.dataset.arch));
 });
 
+document.querySelectorAll("#signSwitch .segment-control__item").forEach((button) => {
+  button.addEventListener("click", () => setSignOutput(button.dataset.sign === "true"));
+});
+
 packageFile.addEventListener("change", updateFileHint);
+signaturePrivateKey.addEventListener("change", updateSignatureHints);
+signaturePublicKey.addEventListener("change", updateSignatureHints);
+generateManagedKeyButton.addEventListener("click", () => {
+  generateManagedKeyPair().catch((error) => {
+    submitHint.textContent = error.message;
+    appendLog(`[deck] ${error.message}`);
+  });
+});
+downloadManagedPublicKeyButton.addEventListener("click", () => downloadManagedKey("public"));
+downloadManagedPrivateKeyButton.addEventListener("click", () => downloadManagedKey("private"));
 
 clearConsoleButton.addEventListener("click", () => resetConsole());
 
@@ -485,6 +778,7 @@ jobForm.addEventListener("submit", submitJob);
 
 setSource(currentSource);
 setArch(currentArch);
+setSignOutput(currentSignOutput);
 resetConsole();
 
 Promise.all([loadConfig(), loadJobs()])
