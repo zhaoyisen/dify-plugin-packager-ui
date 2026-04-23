@@ -105,6 +105,8 @@ class OfflinePackager:
         env["OUTPUT_DIR"] = str(self.config.output_dir)
         env["BIN_DIR"] = str(runtime_bin_dir)
         env["PIP_INDEX_URL"] = self.config.pip_index_url
+        env["UV_DEFAULT_INDEX"] = self.config.pip_index_url
+        env["UV_INDEX_URL"] = self.config.pip_index_url
         env["GITHUB_API_URL"] = self.config.github_api_url
         env["MARKETPLACE_API_URL"] = self.config.marketplace_api_url
         env["DIFY_PLUGIN_DAEMON_VERSION"] = self.config.daemon_version
@@ -114,6 +116,7 @@ class OfflinePackager:
         self.log(f"[packager] Using vendored script: {script_path}")
         self.log(f"[packager] Using local CLI: {cli_source}")
         self.log(f"[packager] Output directory: {self.config.output_dir}")
+        self.log(f"[packager] Python package index: {self.config.pip_index_url}")
         self._stream_command(command, cwd=runtime_root, env=env)
 
         package = self._find_output_package()
