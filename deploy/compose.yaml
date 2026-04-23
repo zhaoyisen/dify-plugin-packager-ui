@@ -2,7 +2,7 @@ name: dify-plugin-packager-ui
 
 services:
   dify-plugin-packager-ui:
-    image: dify-plugin-packager-ui:${IMAGE_TAG:-latest}
+    image: ${IMAGE_NAME:-dify-plugin-packager-ui}:${IMAGE_TAG:-latest}
     container_name: dify-plugin-packager-ui
     restart: unless-stopped
     ports:
