@@ -24,17 +24,28 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from offline_packager import (
+    DEFAULT_CLI_DOWNLOAD_BASE_URL,
+    DEFAULT_DAEMON_VERSION,
+    OfflinePackager,
+    RuntimeConfig,
+    host_cli_asset_name,
+)
+
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 VENDOR_DIR = BASE_DIR / "vendor" / "dify-plugin-repackaging-plus"
 DATA_DIR = BASE_DIR / "data"
 JOBS_DIR = DATA_DIR / "jobs"
+CACHE_DIR = DATA_DIR / "cache"
 SIGNING_DIR = DATA_DIR / "signing"
 MANAGED_SIGNING_DIR = SIGNING_DIR / "managed"
 
 DEFAULT_PIP_MIRROR_URL = "https://mirrors.aliyun.com/pypi/simple"
 DEFAULT_GITHUB_API_URL = "https://github.com"
 DEFAULT_MARKETPLACE_API_URL = "https://marketplace.dify.ai"
+DEFAULT_PLUGIN_DAEMON_VERSION = DEFAULT_DAEMON_VERSION
+DEFAULT_PLUGIN_CLI_DOWNLOAD_BASE_URL = DEFAULT_CLI_DOWNLOAD_BASE_URL
 SIGNING_PRIVATE_KEY_PATH_ENV = "PLUGIN_SIGNING_PRIVATE_KEY_PATH"
 SIGNING_PUBLIC_KEY_PATH_ENV = "PLUGIN_SIGNING_PUBLIC_KEY_PATH"
 MANAGED_PRIVATE_KEY_NAME = "packager-managed.private.pem"
@@ -65,7 +76,7 @@ def safe_filename(name: str) -> str:
 
 
 def ensure_directories() -> None:
-    for directory in (DATA_DIR, JOBS_DIR, VENDOR_DIR, MANAGED_SIGNING_DIR):
+    for directory in (DATA_DIR, JOBS_DIR, CACHE_DIR, VENDOR_DIR, MANAGED_SIGNING_DIR):
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -150,7 +161,7 @@ def list_jobs() -> list[dict[str, Any]]:
     return [job.snapshot() for job in ordered[:20]]
 
 
-def ensure_vendor_files() -> None:
+def legacy_ensure_vendor_files() -> None:
     required = [
         "plugin_repackaging.sh",
         "plugin_repackaging_amd64_to_arm64.sh",
@@ -235,18 +246,18 @@ def summarize_managed_signing_key_pair() -> dict[str, Any]:
 
 
 def detect_signature_cli_status() -> dict[str, Any]:
-    cli_path = VENDOR_DIR / host_cli_binary_name()
+    cli_path = resolve_cli_binary_path()
     if host_os != "linux":
         return {
             "supported": False,
-            "binary_name": cli_path.name,
+            "binary_name": official_cli_binary_name(),
             "error": "The bundled signing binary only runs on Linux hosts.",
         }
-    if not cli_path.is_file():
+    if not cli_path or not cli_path.is_file():
         return {
             "supported": False,
-            "binary_name": cli_path.name,
-            "error": f"{cli_path.name} is missing from vendor assets.",
+            "binary_name": official_cli_binary_name(),
+            "error": f"{official_cli_binary_name()} is not available in the cache or vendor assets.",
         }
 
     try:
@@ -413,6 +424,27 @@ def host_cli_binary_name() -> str:
     return "dify-plugin-linux-amd64-5g"
 
 
+def official_cli_binary_name() -> str:
+    return host_cli_asset_name(host_arch)
+
+
+def cli_cache_dir() -> Path:
+    version = os.getenv("DIFY_PLUGIN_DAEMON_VERSION", DEFAULT_PLUGIN_DAEMON_VERSION).strip() or DEFAULT_PLUGIN_DAEMON_VERSION
+    return CACHE_DIR / "cli" / version
+
+
+def resolve_cli_binary_path() -> Path | None:
+    candidates = [
+        cli_cache_dir() / official_cli_binary_name(),
+        VENDOR_DIR / official_cli_binary_name(),
+        VENDOR_DIR / host_cli_binary_name(),
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def ensure_supported_target(target_arch: str) -> None:
     if host_arch == "arm64" and target_arch == "amd64":
         raise RuntimeError(
@@ -442,6 +474,21 @@ def download_market_package(job: JobRecord, destination: Path) -> Path:
     with urlopen(url, timeout=120) as response, output_path.open("wb") as handle:
         shutil.copyfileobj(response, handle)
     job.log(f"[market] Saved package to {output_path.name}")
+    return output_path
+
+
+def download_github_package(job: JobRecord, destination: Path) -> Path:
+    repo = job.meta["github_repo"]
+    release = job.meta["github_release"]
+    asset = job.meta["github_asset"]
+    github_base = os.getenv("GITHUB_API_URL", DEFAULT_GITHUB_API_URL).rstrip("/")
+    repo_url = repo if repo.startswith(("http://", "https://")) else f"{github_base}/{repo}"
+    url = f"{repo_url.rstrip('/')}/releases/download/{quote(release)}/{quote(asset)}"
+    output_path = destination / safe_filename(asset)
+    job.log(f"[github] Downloading {url}")
+    with urlopen(url, timeout=120) as response, output_path.open("wb") as handle:
+        shutil.copyfileobj(response, handle)
+    job.log(f"[github] Saved package to {output_path.name}")
     return output_path
 
 
@@ -475,6 +522,7 @@ def inspect_package_archive(package_path: Path) -> dict[str, Any]:
         "readable": False,
         "manifest_present": False,
         "requirements_present": False,
+        "pyproject_present": False,
         "uv_lock_present": False,
         "wheel_count": 0,
     }
@@ -495,6 +543,10 @@ def inspect_package_archive(package_path: Path) -> dict[str, Any]:
     )
     inspection["requirements_present"] = any(
         name == "requirements.txt" or name.endswith("/requirements.txt")
+        for name in normalized
+    )
+    inspection["pyproject_present"] = any(
+        name == "pyproject.toml" or name.endswith("/pyproject.toml")
         for name in normalized
     )
     inspection["uv_lock_present"] = any(
@@ -519,6 +571,7 @@ def log_package_archive_inspection(job: JobRecord, package_path: Path) -> None:
         "[inspect] "
         f"manifest.yaml={'yes' if inspection['manifest_present'] else 'no'}, "
         f"requirements.txt={'yes' if inspection['requirements_present'] else 'no'}, "
+        f"pyproject.toml={'present' if inspection['pyproject_present'] else 'absent'}, "
         f"uv.lock={'present' if inspection['uv_lock_present'] else 'absent'}, "
         f"bundled wheels={inspection['wheel_count']}"
     )
@@ -602,14 +655,14 @@ def resolve_public_key_path(job: JobRecord) -> tuple[Path | None, str]:
     return public_key_path, public_key_source
 
 
-def sign_package(
+def legacy_sign_package(
     job: JobRecord,
     runner_dir: Path,
     package_path: Path,
     env: dict[str, str],
 ) -> Path:
-    cli_path = runner_dir / host_cli_binary_name()
-    if not cli_path.is_file():
+    cli_path = resolve_cli_binary_path()
+    if not cli_path:
         raise RuntimeError(f"缺少签名命令行工具：{cli_path.name}")
     signature_cli_status = detect_signature_cli_status()
     if not signature_cli_status["supported"]:
@@ -658,6 +711,55 @@ def sign_package(
         ),
     )
     job.log("[签名] 验签成功")
+    return signed_path
+
+
+def sign_package(
+    job: JobRecord,
+    runner_dir: Path,
+    package_path: Path,
+    env: dict[str, str],
+) -> Path:
+    del runner_dir
+    cli_path = resolve_cli_binary_path()
+    if not cli_path:
+        raise RuntimeError(f"Missing signing CLI binary: {official_cli_binary_name()}")
+
+    signature_cli_status = detect_signature_cli_status()
+    if not signature_cli_status["supported"]:
+        raise RuntimeError(signature_cli_status["error"] or "Signing is not supported in the current runtime.")
+
+    private_key_path, private_key_source = resolve_private_key_path(job)
+    public_key_path, public_key_source = resolve_public_key_path(job)
+
+    job.log(f"[sign] Using {private_key_source} private key ({describe_key_path(private_key_path)})")
+    run_subprocess(
+        job,
+        [str(cli_path), "signature", "sign", str(package_path), "-p", str(private_key_path)],
+        package_path.parent,
+        env,
+        log_command=f"[exec] {cli_path.name} signature sign {package_path.name} -p [private-key]",
+    )
+
+    signed_path = find_signed_package(package_path)
+    if not signed_path:
+        raise RuntimeError("Signing finished but no .signed.difypkg file was generated")
+
+    job.log(f"[sign] Signed package created: {signed_path.name}")
+
+    if not public_key_path:
+        job.log("[sign] Verification skipped because no public key was provided")
+        return signed_path
+
+    job.log(f"[sign] Verifying with {public_key_source} public key ({describe_key_path(public_key_path)})")
+    run_subprocess(
+        job,
+        [str(cli_path), "signature", "verify", str(signed_path), "-p", str(public_key_path)],
+        signed_path.parent,
+        env,
+        log_command=f"[exec] {cli_path.name} signature verify {signed_path.name} -p [public-key]",
+    )
+    job.log("[sign] Verification succeeded")
     return signed_path
 
 
@@ -756,46 +858,45 @@ def execute_job(job: JobRecord) -> None:
     output_dir = job_dir / "output"
     input_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
-    runner_dir = copy_runner_assets(job_dir)
-    env = build_runtime_env()
-    script_name = choose_script(job.target_arch)
-    script_path = runner_dir / script_name
-    source_path: Path | None = None
+    source_path: Path
+    daemon_version = os.getenv("DIFY_PLUGIN_DAEMON_VERSION", DEFAULT_PLUGIN_DAEMON_VERSION).strip() or DEFAULT_PLUGIN_DAEMON_VERSION
+    cli_download_base_url = (
+        os.getenv("DIFY_PLUGIN_CLI_DOWNLOAD_BASE_URL", DEFAULT_PLUGIN_CLI_DOWNLOAD_BASE_URL).strip()
+        or DEFAULT_PLUGIN_CLI_DOWNLOAD_BASE_URL
+    )
 
     job.log(f"[job] Host architecture: {host_arch}")
     job.log(f"[job] Target architecture: {job.target_arch}")
-    job.log(f"[job] Using script: {script_name}")
-    job.log(f"[job] Working directory: {runner_dir}")
+    job.log(f"[job] Daemon-compatible CLI version: {daemon_version}")
+    job.log(f"[job] Working directory: {job_dir}")
 
     if job.source == "market":
         source_path = download_market_package(job, input_dir)
-        command = ["bash", str(script_path), "local", str(source_path)]
     elif job.source == "local":
         source_path = input_dir / (job.input_name or "")
-        command = ["bash", str(script_path), "local", str(source_path)]
     else:
-        command = [
-            "bash",
-            str(script_path),
-            "github",
-            job.meta["github_repo"],
-            job.meta["github_release"],
-            job.meta["github_asset"],
-        ]
+        source_path = download_github_package(job, input_dir)
 
-    run_subprocess(job, command, runner_dir, env)
-
-    package = find_output_package(runner_dir)
-    if not package:
-        raise RuntimeError("Packaging finished but no offline package was generated")
-
-    target_path = output_dir / package.name
-    shutil.move(str(package), str(target_path))
+    runtime = RuntimeConfig(
+        work_dir=job_dir,
+        cache_dir=CACHE_DIR,
+        output_dir=output_dir,
+        host_os=host_os,
+        host_arch=host_arch,
+        target_arch=job.target_arch,
+        pip_index_url=os.getenv("PIP_MIRROR_URL", DEFAULT_PIP_MIRROR_URL),
+        github_api_url=os.getenv("GITHUB_API_URL", DEFAULT_GITHUB_API_URL),
+        marketplace_api_url=os.getenv("MARKETPLACE_API_URL", DEFAULT_MARKETPLACE_API_URL),
+        daemon_version=daemon_version,
+        cli_download_base_url=cli_download_base_url,
+    )
+    packager = OfflinePackager(runtime, job.log)
+    target_path = packager.package_from_local_file(source_path)
     log_package_archive_inspection(job, target_path)
     final_artifact = target_path
 
     if job.sign_output:
-        final_artifact = sign_package(job, runner_dir, target_path, env)
+        final_artifact = sign_package(job, target_path.parent, target_path, build_runtime_env())
         log_package_archive_inspection(job, final_artifact)
 
     job.set_artifact(final_artifact)
@@ -813,6 +914,10 @@ def background_job_runner(job_id: str) -> None:
         job.transition("failed", str(exc))
     finally:
         cleanup_sensitive_inputs(job)
+
+
+def ensure_vendor_files() -> None:
+    VENDOR_DIR.mkdir(parents=True, exist_ok=True)
 
 
 app = FastAPI(title="Dify Plugin Packager UI")
@@ -857,6 +962,10 @@ async def config() -> JSONResponse:
             "pip_mirror_url": os.getenv("PIP_MIRROR_URL", DEFAULT_PIP_MIRROR_URL),
             "marketplace_api_url": os.getenv("MARKETPLACE_API_URL", DEFAULT_MARKETPLACE_API_URL),
             "github_api_url": os.getenv("GITHUB_API_URL", DEFAULT_GITHUB_API_URL),
+            "plugin_daemon_version": (
+                os.getenv("DIFY_PLUGIN_DAEMON_VERSION", DEFAULT_PLUGIN_DAEMON_VERSION).strip()
+                or DEFAULT_PLUGIN_DAEMON_VERSION
+            ),
             "signing": get_signing_runtime_config(),
         }
     )
