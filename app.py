@@ -25,16 +25,18 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 
 from offline_packager import (
-    DEFAULT_CLI_DOWNLOAD_BASE_URL,
     DEFAULT_DAEMON_VERSION,
     OfflinePackager,
     RuntimeConfig,
+    cached_cli_asset_name,
     host_cli_asset_name,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
-VENDOR_DIR = BASE_DIR / "vendor" / "dify-plugin-repackaging-plus"
+LEGACY_VENDOR_DIR = BASE_DIR / "vendor" / "dify-plugin-repackaging-plus"
+OFFLINE_PACKAGER_DIR = BASE_DIR / "vendor" / "dify-plugin-offline-packager"
+OFFLINE_PACKAGER_BIN_DIR = OFFLINE_PACKAGER_DIR / "bin"
 DATA_DIR = BASE_DIR / "data"
 JOBS_DIR = DATA_DIR / "jobs"
 CACHE_DIR = DATA_DIR / "cache"
@@ -45,7 +47,6 @@ DEFAULT_PIP_MIRROR_URL = "https://mirrors.aliyun.com/pypi/simple"
 DEFAULT_GITHUB_API_URL = "https://github.com"
 DEFAULT_MARKETPLACE_API_URL = "https://marketplace.dify.ai"
 DEFAULT_PLUGIN_DAEMON_VERSION = DEFAULT_DAEMON_VERSION
-DEFAULT_PLUGIN_CLI_DOWNLOAD_BASE_URL = DEFAULT_CLI_DOWNLOAD_BASE_URL
 SIGNING_PRIVATE_KEY_PATH_ENV = "PLUGIN_SIGNING_PRIVATE_KEY_PATH"
 SIGNING_PUBLIC_KEY_PATH_ENV = "PLUGIN_SIGNING_PUBLIC_KEY_PATH"
 MANAGED_PRIVATE_KEY_NAME = "packager-managed.private.pem"
@@ -76,7 +77,15 @@ def safe_filename(name: str) -> str:
 
 
 def ensure_directories() -> None:
-    for directory in (DATA_DIR, JOBS_DIR, CACHE_DIR, VENDOR_DIR, MANAGED_SIGNING_DIR):
+    for directory in (
+        DATA_DIR,
+        JOBS_DIR,
+        CACHE_DIR,
+        LEGACY_VENDOR_DIR,
+        OFFLINE_PACKAGER_DIR,
+        OFFLINE_PACKAGER_BIN_DIR,
+        MANAGED_SIGNING_DIR,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
 
 
@@ -168,7 +177,7 @@ def legacy_ensure_vendor_files() -> None:
         "dify-plugin-linux-amd64-5g",
         "dify-plugin-linux-arm64-5g",
     ]
-    missing = [name for name in required if not (VENDOR_DIR / name).exists()]
+    missing = [name for name in required if not (LEGACY_VENDOR_DIR / name).exists()]
     if missing:
         raise RuntimeError(f"依赖资源缺失：{', '.join(missing)}")
 
@@ -263,7 +272,7 @@ def detect_signature_cli_status() -> dict[str, Any]:
     try:
         result = subprocess.run(
             [str(cli_path), "--help"],
-            cwd=str(VENDOR_DIR),
+            cwd=str(BASE_DIR),
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -402,7 +411,7 @@ def get_signing_runtime_config() -> dict[str, Any]:
 def copy_runner_assets(job_dir: Path) -> Path:
     runner_dir = job_dir / "runner"
     runner_dir.mkdir(parents=True, exist_ok=True)
-    for item in VENDOR_DIR.iterdir():
+    for item in LEGACY_VENDOR_DIR.iterdir():
         if not item.is_file():
             continue
         target = runner_dir / item.name
@@ -434,11 +443,23 @@ def cli_cache_dir() -> Path:
 
 
 def resolve_cli_binary_path() -> Path | None:
-    candidates = [
-        cli_cache_dir() / official_cli_binary_name(),
-        VENDOR_DIR / official_cli_binary_name(),
-        VENDOR_DIR / host_cli_binary_name(),
-    ]
+    explicit = env_path("DIFY_PLUGIN_CLI_PATH")
+    daemon_version = os.getenv("DIFY_PLUGIN_DAEMON_VERSION", DEFAULT_PLUGIN_DAEMON_VERSION).strip() or DEFAULT_PLUGIN_DAEMON_VERSION
+    cached_name = cached_cli_asset_name(host_os, host_arch, daemon_version)
+    candidates: list[Path] = []
+    if explicit:
+        candidates.append(explicit)
+    candidates.extend(
+        [
+            cli_cache_dir() / official_cli_binary_name(),
+            cli_cache_dir() / cached_name,
+            OFFLINE_PACKAGER_BIN_DIR / official_cli_binary_name(),
+            OFFLINE_PACKAGER_BIN_DIR / cached_name,
+            LEGACY_VENDOR_DIR / official_cli_binary_name(),
+            LEGACY_VENDOR_DIR / cached_name,
+            LEGACY_VENDOR_DIR / host_cli_binary_name(),
+        ]
+    )
     for candidate in candidates:
         if candidate.is_file():
             return candidate
@@ -850,7 +871,7 @@ def generate_managed_signing_key_pair(*, overwrite: bool = False) -> dict[str, A
 
 def execute_job(job: JobRecord) -> None:
     if host_os != "linux":
-        raise RuntimeError("Packaging execution requires Linux because the bundled packager binaries are Linux ELF executables")
+        raise RuntimeError("Packaging execution requires Linux because the vendored offline packager uses Linux Dify CLI binaries.")
     ensure_supported_target(job.target_arch)
 
     job_dir = Path(job.work_dir or "")
@@ -858,29 +879,19 @@ def execute_job(job: JobRecord) -> None:
     output_dir = job_dir / "output"
     input_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
-    source_path: Path
     daemon_version = os.getenv("DIFY_PLUGIN_DAEMON_VERSION", DEFAULT_PLUGIN_DAEMON_VERSION).strip() or DEFAULT_PLUGIN_DAEMON_VERSION
-    cli_download_base_url = (
-        os.getenv("DIFY_PLUGIN_CLI_DOWNLOAD_BASE_URL", DEFAULT_PLUGIN_CLI_DOWNLOAD_BASE_URL).strip()
-        or DEFAULT_PLUGIN_CLI_DOWNLOAD_BASE_URL
-    )
 
     job.log(f"[job] Host architecture: {host_arch}")
     job.log(f"[job] Target architecture: {job.target_arch}")
-    job.log(f"[job] Daemon-compatible CLI version: {daemon_version}")
+    job.log(f"[job] Vendored packager daemon version: {daemon_version}")
     job.log(f"[job] Working directory: {job_dir}")
-
-    if job.source == "market":
-        source_path = download_market_package(job, input_dir)
-    elif job.source == "local":
-        source_path = input_dir / (job.input_name or "")
-    else:
-        source_path = download_github_package(job, input_dir)
 
     runtime = RuntimeConfig(
         work_dir=job_dir,
         cache_dir=CACHE_DIR,
         output_dir=output_dir,
+        vendor_dir=OFFLINE_PACKAGER_DIR,
+        legacy_vendor_dir=LEGACY_VENDOR_DIR,
         host_os=host_os,
         host_arch=host_arch,
         target_arch=job.target_arch,
@@ -888,10 +899,24 @@ def execute_job(job: JobRecord) -> None:
         github_api_url=os.getenv("GITHUB_API_URL", DEFAULT_GITHUB_API_URL),
         marketplace_api_url=os.getenv("MARKETPLACE_API_URL", DEFAULT_MARKETPLACE_API_URL),
         daemon_version=daemon_version,
-        cli_download_base_url=cli_download_base_url,
+        cli_path=env_path("DIFY_PLUGIN_CLI_PATH"),
     )
     packager = OfflinePackager(runtime, job.log)
-    target_path = packager.package_from_local_file(source_path)
+    if job.source == "market":
+        target_path = packager.package_from_marketplace(
+            job.meta["market_author"],
+            job.meta["market_name"],
+            job.meta["market_version"],
+        )
+    elif job.source == "github":
+        target_path = packager.package_from_github_release(
+            job.meta["github_repo"],
+            job.meta["github_release"],
+            job.meta["github_asset"],
+        )
+    else:
+        source_path = input_dir / (job.input_name or "")
+        target_path = packager.package_from_local_file(source_path)
     log_package_archive_inspection(job, target_path)
     final_artifact = target_path
 
@@ -917,7 +942,14 @@ def background_job_runner(job_id: str) -> None:
 
 
 def ensure_vendor_files() -> None:
-    VENDOR_DIR.mkdir(parents=True, exist_ok=True)
+    LEGACY_VENDOR_DIR.mkdir(parents=True, exist_ok=True)
+    OFFLINE_PACKAGER_BIN_DIR.mkdir(parents=True, exist_ok=True)
+    packager_script = OFFLINE_PACKAGER_DIR / "scripts" / "packager.py"
+    if not packager_script.is_file():
+        raise RuntimeError(f"Missing vendored offline packager script: {packager_script}")
+    vendored_cli = OFFLINE_PACKAGER_BIN_DIR / official_cli_binary_name()
+    if not vendored_cli.is_file():
+        raise RuntimeError(f"Missing vendored Dify CLI binary: {vendored_cli}")
 
 
 app = FastAPI(title="Dify Plugin Packager UI")
@@ -1171,7 +1203,7 @@ async def create_job(
     signature_cli_ready = detect_signature_cli_status()["supported"]
     sign_output_requested = parse_form_bool(
         sign_output,
-        default=(bool(uploaded_private_key_path) or server_private_key_ready) and signature_cli_ready,
+        default=False,
     )
 
     if sign_output_requested and not uploaded_private_key_path and not server_private_key_ready:

@@ -456,7 +456,7 @@ async function loadConfig() {
     state.selectedArch = available || payload.supported_arches[0] || "amd64";
   }
 
-  state.signOutput = Boolean(payload.signing?.enabled_by_default);
+  state.signOutput = false;
 }
 
 async function loadSigning() {

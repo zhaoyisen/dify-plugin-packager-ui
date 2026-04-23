@@ -29,7 +29,9 @@ COPY . /app
 RUN chmod 755 /app/vendor/dify-plugin-repackaging-plus/plugin_repackaging.sh \
     /app/vendor/dify-plugin-repackaging-plus/plugin_repackaging_amd64_to_arm64.sh \
     /app/vendor/dify-plugin-repackaging-plus/dify-plugin-linux-amd64-5g \
-    /app/vendor/dify-plugin-repackaging-plus/dify-plugin-linux-arm64-5g
+    /app/vendor/dify-plugin-repackaging-plus/dify-plugin-linux-arm64-5g \
+    /app/vendor/dify-plugin-offline-packager/bin/dify-plugin-linux-amd64 \
+    /app/vendor/dify-plugin-offline-packager/bin/dify-plugin-linux-arm64
 
 EXPOSE 8080
 

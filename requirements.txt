@@ -1,5 +1,4 @@
 fastapi==0.116.1
 python-multipart==0.0.20
-tomli-w==1.2.0
 uv==0.9.8
 uvicorn[standard]==0.35.0

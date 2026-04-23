@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 venv/
 env/
+tmp-browser/
+tmp-chrome-profile/
 
 .env
 deploy/.env
