@@ -22,6 +22,7 @@
 - [7. 环境变量](#7-环境变量)
 - [8. 持久化、备份与升级](#8-持久化备份与升级)
 - [9. 常见问题](#9-常见问题)
+- [10. 第三方项目与许可证](#10-第三方项目与许可证)
 
 ## 功能
 
@@ -697,4 +698,44 @@ docker compose -f deploy/compose.yaml --env-file deploy/.env up -d
 
 ```env
 PLUGIN_IGNORE_UV_LOCK=true
+```
+
+## 10. 第三方项目与许可证
+
+本项目的离线打包核心逻辑基于以下开源项目：
+
+```text
+kurokobo/dify-plugin-offline-packager
+```
+
+上游地址：
+
+```text
+https://github.com/kurokobo/dify-plugin-offline-packager
+```
+
+本仓库已将该项目 vendored 到：
+
+```text
+vendor/dify-plugin-offline-packager/
+```
+
+本项目主要做了这些封装和调整：
+
+- 提供 Web UI、任务管理、实时日志和产物下载
+- 通过 `offline_packager.py` 调用 vendored `scripts/packager.py`
+- 将 Dify 官方 CLI 二进制内置到镜像中，避免运行时下载 CLI
+- 默认不签名，保留手动签名能力
+- 增加 Docker Compose、Jenkins、Kubernetes 等部署说明
+
+上游项目使用 MIT License。原始许可证保留在：
+
+```text
+vendor/dify-plugin-offline-packager/LICENSE
+```
+
+本仓库还提供第三方来源说明：
+
+```text
+vendor/dify-plugin-offline-packager/NOTICE.md
 ```
